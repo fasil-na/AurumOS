@@ -1,4 +1,4 @@
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.ethereal.email',
@@ -25,6 +25,5 @@ const sendEmail = async ({ to, subject, html }) => {
   }
 };
 
-module.exports = {
-  sendEmail
-};
+export { sendEmail
+ };

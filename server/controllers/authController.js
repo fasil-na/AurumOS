@@ -1,8 +1,9 @@
-const bcrypt = require('bcryptjs');
-const { generateAuthToken, generateRandomToken } = require('../utils/tokens');
-const { sendEmail } = require('../utils/email');
-const User = require('../models/User');
-const PasswordResetToken = require('../models/PasswordResetToken');
+import bcrypt from 'bcryptjs';
+import { generateAuthToken, generateRandomToken } from '../utils/tokens.js';
+import { sendEmail } from '../utils/email.js';
+import User from '../models/User.js';
+import PasswordResetToken from '../models/PasswordResetToken.js';
+import { CLIENT_URL, SERVER_URL } from '../constants.js';
 
 const login = async (req, res) => {
   try {
@@ -96,8 +97,8 @@ const forgotPassword = async (req, res) => {
       expiresAt
     });
 
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
-    
+    const resetUrl = `${CLIENT_URL}/reset-password?token=${token}`;
+
     await sendEmail({
       to: email,
       subject: 'Password Reset Request',
@@ -161,10 +162,10 @@ const updateProfile = async (req, res) => {
     }
 
     const { firstName, lastName, mobileNumber, aadharNumber, panNumber, address } = req.body;
-    
+
     let profilePicUrl = undefined;
     if (req.file) {
-      profilePicUrl = `${process.env.SERVER_URL || 'http://localhost:5000'}/uploads/${req.file.filename}`;
+      profilePicUrl = `${SERVER_URL}/uploads/${req.file.filename}`;
     }
 
     const user = await User.findById(req.user._id);
@@ -189,11 +190,10 @@ const updateProfile = async (req, res) => {
   }
 };
 
-module.exports = {
-  login,
+export { login,
   logout,
   me,
   forgotPassword,
   resetPassword,
   updateProfile
-};
+ };

@@ -1,10 +1,10 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const rateLimit = require('express-rate-limit');
-const { login, logout, me, forgotPassword, resetPassword, updateProfile } = require('../controllers/authController');
-const { authenticate } = require('../middleware/auth');
-const upload = require('../middleware/upload');
-const { validateRequest, loginSchema, forgotPasswordSchema, resetPasswordSchema } = require('../validations/auth.validation');
+import rateLimit from 'express-rate-limit';
+import { login, logout, me, forgotPassword, resetPassword, updateProfile } from '../controllers/authController.js';
+import { authenticate } from '../middleware/auth.js';
+import upload from '../middleware/upload.js';
+import { validateRequest, loginSchema, forgotPasswordSchema, resetPasswordSchema } from '../validations/auth.validation.js';
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -19,4 +19,4 @@ router.put('/profile', authenticate, upload.single('profilePic'), updateProfile)
 router.post('/forgot-password', authLimiter, validateRequest(forgotPasswordSchema), forgotPassword);
 router.post('/reset-password', validateRequest(resetPasswordSchema), resetPassword);
 
-module.exports = router;
+export default router;

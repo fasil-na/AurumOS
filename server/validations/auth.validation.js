@@ -1,4 +1,4 @@
-const Joi = require('joi');
+import Joi from 'joi';
 
 const loginSchema = Joi.object({
   email: Joi.string().email().required(),
@@ -38,11 +38,10 @@ const validateRequest = (schema) => {
   };
 };
 
-module.exports = {
-  loginSchema,
+export { loginSchema,
   inviteUserSchema,
   acceptInviteSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
   validateRequest
-};
+ };

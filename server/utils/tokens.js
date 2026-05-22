@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 // Generate JWT for authentication
 const generateAuthToken = (userId, role) => {
@@ -15,7 +15,6 @@ const generateRandomToken = () => {
   return crypto.randomBytes(32).toString('hex');
 };
 
-module.exports = {
-  generateAuthToken,
+export { generateAuthToken,
   generateRandomToken
-};
+ };

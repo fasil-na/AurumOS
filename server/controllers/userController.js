@@ -1,4 +1,4 @@
-const User = require('../models/User');
+import User from '../models/User.js';
 
 const getEmployees = async (req, res) => {
   try {
@@ -62,8 +62,7 @@ const updateEmployeeSections = async (req, res) => {
   }
 };
 
-module.exports = {
-  getEmployees,
+export { getEmployees,
   verifyEmployee,
   updateEmployeeSections
-};
+ };

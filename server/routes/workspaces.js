@@ -1,8 +1,8 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { getWorkspaces } = require('../controllers/workspaceController');
-const { authenticate } = require('../middleware/auth');
-const { authorizeRoles } = require('../middleware/roles');
+import { getWorkspaces } from '../controllers/workspaceController.js';
+import { authenticate } from '../middleware/auth.js';
+import { authorizeRoles } from '../middleware/roles.js';
 
 // Require authentication and Super Admin role to view all workspaces
 router.get(
@@ -12,4 +12,4 @@ router.get(
   getWorkspaces
 );
 
-module.exports = router;
+export default router;

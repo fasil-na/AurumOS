@@ -1,13 +1,11 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { 
-  createSection, 
+import { createSection, 
   getSections, 
   updateSection, 
-  deleteSection 
-} = require('../controllers/sectionController');
-const { authenticate } = require('../middleware/auth');
-const { authorizeRoles } = require('../middleware/roles');
+  deleteSection } from '../controllers/sectionController.js';
+import { authenticate } from '../middleware/auth.js';
+import { authorizeRoles } from '../middleware/roles.js';
 
 // All routes require authentication
 router.use(authenticate);
@@ -20,4 +18,4 @@ router.post('/', authorizeRoles('Admin'), createSection);
 router.put('/:id', authorizeRoles('Admin'), updateSection);
 router.delete('/:id', authorizeRoles('Admin'), deleteSection);
 
-module.exports = router;
+export default router;

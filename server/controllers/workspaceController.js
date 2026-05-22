@@ -1,8 +1,8 @@
-const Workspace = require('../models/Workspace');
-const User = require('../models/User');
-const Invitation = require('../models/Invitation');
+import Workspace from '../models/Workspace.js';
+import User from '../models/User.js';
+import Invitation from '../models/Invitation.js';
 
-exports.getWorkspaces = async (req, res) => {
+export const getWorkspaces = async (req, res) => {
   try {
     const workspaces = await Workspace.find().populate('owner', 'email firstName lastName');
     

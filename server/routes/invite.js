@@ -1,9 +1,9 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { inviteUser, getInvitations, acceptInvitation, revokeInvitation, validateInvitation } = require('../controllers/inviteController');
-const { authenticate } = require('../middleware/auth');
-const { authorizeRoles } = require('../middleware/roles');
-const { validateRequest, inviteUserSchema, acceptInviteSchema } = require('../validations/auth.validation');
+import { inviteUser, getInvitations, acceptInvitation, revokeInvitation, validateInvitation } from '../controllers/inviteController.js';
+import { authenticate } from '../middleware/auth.js';
+import { authorizeRoles } from '../middleware/roles.js';
+import { validateRequest, inviteUserSchema, acceptInviteSchema } from '../validations/auth.validation.js';
 
 // Require authentication and specific roles to send invites
 router.post(
@@ -40,4 +40,4 @@ router.delete(
   revokeInvitation
 );
 
-module.exports = router;
+export default router;

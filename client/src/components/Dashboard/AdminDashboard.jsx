@@ -5,6 +5,7 @@ import SidebarLayout from '../Shared/SidebarLayout';
 import ProfileForm from '../Shared/ProfileForm';
 import { Mail, Plus, UserPlus, Clock, CheckCircle, XCircle, Shield, User, CheckSquare, Layers, Trash2 } from 'lucide-react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import ProductManagement from './ProductManagement';
 
 const AdminDashboard = () => {
   const [email, setEmail] = useState('');
@@ -148,6 +149,7 @@ const AdminDashboard = () => {
     { label: 'Task Management', icon: 'tasks', path: '/admin/tasks' },
     { label: 'Workspace Profile', icon: 'building', path: '/admin/workspace' },
     { label: 'My Profile', icon: 'profile', path: '/admin/profile' },
+    { label: 'Products', icon: 'product', path: '/admin/products' },
   ];
 
   return (
@@ -175,6 +177,8 @@ const AdminDashboard = () => {
             </div>
           } />
 
+          <Route path="products" element={<ProductManagement />} />
+
           <Route path="users" element={
             <div className="space-y-6">
               {/* Tab Switcher */}
@@ -197,162 +201,162 @@ const AdminDashboard = () => {
 
               {/* Invitations List */}
               {activeListTab === 'invitations' && (
-              <div className="bg-white/80 rounded-2xl border border-slate-200 backdrop-blur-xl shadow-xl overflow-hidden h-full flex flex-col">
-                <div className="px-6 py-5 border-b border-slate-200 flex justify-between items-center bg-white/70">
-                  <div className="flex items-center space-x-4">
-                    <h3 className="text-lg font-semibold text-slate-800">Recent Invitations</h3>
-                    <div className="px-3 py-1 bg-slate-50 rounded-full border border-slate-200">
-                      <span className="text-xs font-medium text-slate-500">{invitations.length} Total</span>
+                <div className="bg-white/80 rounded-2xl border border-slate-200 backdrop-blur-xl shadow-xl overflow-hidden h-full flex flex-col">
+                  <div className="px-6 py-5 border-b border-slate-200 flex justify-between items-center bg-white/70">
+                    <div className="flex items-center space-x-4">
+                      <h3 className="text-lg font-semibold text-slate-800">Recent Invitations</h3>
+                      <div className="px-3 py-1 bg-slate-50 rounded-full border border-slate-200">
+                        <span className="text-xs font-medium text-slate-500">{invitations.length} Total</span>
+                      </div>
                     </div>
+                    <button
+                      onClick={() => setIsInviteModalOpen(true)}
+                      className="flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-bold rounded-xl text-slate-800 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 focus:outline-none transition-all shadow-lg hover:shadow-blue-500/25"
+                    >
+                      <Plus size={18} /> Invite User
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setIsInviteModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-bold rounded-xl text-slate-800 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 focus:outline-none transition-all shadow-lg hover:shadow-blue-500/25"
-                  >
-                    <Plus size={18} /> Invite User
-                  </button>
-                </div>
-                <div className="flex-1 overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-700/50">
-                    <thead className="bg-slate-50">
-                      <tr>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Recipient</th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Sent Date</th>
-                        <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-700/50">
-                      {invitations.map((inv) => (
-                        <tr key={inv._id} className="hover:bg-slate-50 transition-colors group">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-medium text-sm mr-3">
-                                {inv.email.charAt(0).toUpperCase()}
-                              </div>
-                              <span className="text-sm font-medium text-slate-700">{inv.email}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${inv.status === 'accepted' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                              inv.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                                'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                              }`}>
-                              {inv.status === 'accepted' && <CheckCircle size={12} className="mr-1.5" />}
-                              {inv.status === 'pending' && <Clock size={12} className="mr-1.5" />}
-                              {inv.status === 'revoked' && <XCircle size={12} className="mr-1.5" />}
-                              <span className="capitalize">{inv.status}</span>
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                            {new Date(inv.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            {inv.status === 'pending' ? (
-                              <button
-                                onClick={() => handleRevoke(inv._id)}
-                                className="text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                              >
-                                Revoke
-                              </button>
-                            ) : (
-                              <span className="text-slate-600">-</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                      {invitations.length === 0 && (
+                  <div className="flex-1 overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-700/50">
+                      <thead className="bg-slate-50">
                         <tr>
-                          <td colSpan="4" className="px-6 py-12 text-center">
-                            <div className="flex flex-col items-center justify-center text-slate-500">
-                              <Mail size={40} className="mb-3 opacity-20" />
-                              <p className="text-sm font-medium">No invitations found</p>
-                              <p className="text-xs mt-1">Start by inviting an employee using the form.</p>
-                            </div>
-                          </td>
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Recipient</th>
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Sent Date</th>
+                          <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-slate-700/50">
+                        {invitations.map((inv) => (
+                          <tr key={inv._id} className="hover:bg-slate-50 transition-colors group">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-medium text-sm mr-3">
+                                  {inv.email.charAt(0).toUpperCase()}
+                                </div>
+                                <span className="text-sm font-medium text-slate-700">{inv.email}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${inv.status === 'accepted' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                inv.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                  'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                }`}>
+                                {inv.status === 'accepted' && <CheckCircle size={12} className="mr-1.5" />}
+                                {inv.status === 'pending' && <Clock size={12} className="mr-1.5" />}
+                                {inv.status === 'revoked' && <XCircle size={12} className="mr-1.5" />}
+                                <span className="capitalize">{inv.status}</span>
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                              {new Date(inv.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              {inv.status === 'pending' ? (
+                                <button
+                                  onClick={() => handleRevoke(inv._id)}
+                                  className="text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                >
+                                  Revoke
+                                </button>
+                              ) : (
+                                <span className="text-slate-600">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                        {invitations.length === 0 && (
+                          <tr>
+                            <td colSpan="4" className="px-6 py-12 text-center">
+                              <div className="flex flex-col items-center justify-center text-slate-500">
+                                <Mail size={40} className="mb-3 opacity-20" />
+                                <p className="text-sm font-medium">No invitations found</p>
+                                <p className="text-xs mt-1">Start by inviting an employee using the form.</p>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
               )}
 
               {/* Employees List */}
               {activeListTab === 'employees' && (
-              <div className="bg-white/80 rounded-2xl border border-slate-200 backdrop-blur-xl shadow-xl overflow-hidden flex flex-col">
-                <div className="px-6 py-5 border-b border-slate-200 flex justify-between items-center bg-white/70">
-                  <h3 className="text-lg font-semibold text-slate-800">Employees Directory</h3>
-                  <div className="px-3 py-1 bg-slate-50 rounded-full border border-slate-200">
-                    <span className="text-xs font-medium text-slate-500">{employees.length} Total</span>
+                <div className="bg-white/80 rounded-2xl border border-slate-200 backdrop-blur-xl shadow-xl overflow-hidden flex flex-col">
+                  <div className="px-6 py-5 border-b border-slate-200 flex justify-between items-center bg-white/70">
+                    <h3 className="text-lg font-semibold text-slate-800">Employees Directory</h3>
+                    <div className="px-3 py-1 bg-slate-50 rounded-full border border-slate-200">
+                      <span className="text-xs font-medium text-slate-500">{employees.length} Total</span>
+                    </div>
                   </div>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-700/50">
-                    <thead className="bg-slate-50">
-                      <tr>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Employee</th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Contact</th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Profile Status</th>
-                        <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Verification</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-700/50">
-                      {employees.map((emp) => {
-                        const fields = ['firstName', 'lastName', 'mobileNumber', 'aadharNumber', 'panNumber', 'address', 'profilePic'];
-                        let filled = 0;
-                        fields.forEach(field => { if (emp[field]) filled++; });
-                        const completion = Math.round((filled / fields.length) * 100);
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-700/50">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Employee</th>
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Contact</th>
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Profile Status</th>
+                          <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Verification</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-700/50">
+                        {employees.map((emp) => {
+                          const fields = ['firstName', 'lastName', 'mobileNumber', 'aadharNumber', 'panNumber', 'address', 'profilePic'];
+                          let filled = 0;
+                          fields.forEach(field => { if (emp[field]) filled++; });
+                          const completion = Math.round((filled / fields.length) * 100);
 
-                        return (
-                          <tr key={emp._id} className="hover:bg-slate-50 transition-colors group">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center">
-                                <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold text-sm mr-3 overflow-hidden">
-                                  {emp.profilePic ? <img src={emp.profilePic} alt="" className="w-full h-full object-cover" /> : emp.firstName?.charAt(0) || 'U'}
+                          return (
+                            <tr key={emp._id} className="hover:bg-slate-50 transition-colors group">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold text-sm mr-3 overflow-hidden">
+                                    {emp.profilePic ? <img src={emp.profilePic} alt="" className="w-full h-full object-cover" /> : emp.firstName?.charAt(0) || 'U'}
+                                  </div>
+                                  <div>
+                                    <span className="block text-sm font-medium text-slate-700">{emp.firstName} {emp.lastName}</span>
+                                    <span className="block text-xs text-slate-500">{emp.email}</span>
+                                  </div>
                                 </div>
-                                <div>
-                                  <span className="block text-sm font-medium text-slate-700">{emp.firstName} {emp.lastName}</span>
-                                  <span className="block text-xs text-slate-500">{emp.email}</span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                {emp.mobileNumber || '-'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full ${completion === 100 ? 'bg-emerald-400' : 'bg-blue-400'}`}
+                                      style={{ width: `${completion}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className="text-xs text-slate-500">{completion}%</span>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                              {emp.mobileNumber || '-'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center space-x-2">
-                                <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                  <div
-                                    className={`h-full ${completion === 100 ? 'bg-emerald-400' : 'bg-blue-400'}`}
-                                    style={{ width: `${completion}%` }}
-                                  ></div>
-                                </div>
-                                <span className="text-xs text-slate-500">{completion}%</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <button
-                                onClick={() => setSelectedEmployee(emp)}
-                                className="text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg transition-colors opacity-100 focus:opacity-100"
-                              >
-                                View Profile
-                              </button>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button
+                                  onClick={() => setSelectedEmployee(emp)}
+                                  className="text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg transition-colors opacity-100 focus:opacity-100"
+                                >
+                                  View Profile
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {employees.length === 0 && (
+                          <tr>
+                            <td colSpan="4" className="px-6 py-12 text-center text-slate-500">
+                              <p className="text-sm font-medium">No employees found</p>
                             </td>
                           </tr>
-                        );
-                      })}
-                      {employees.length === 0 && (
-                        <tr>
-                          <td colSpan="4" className="px-6 py-12 text-center text-slate-500">
-                            <p className="text-sm font-medium">No employees found</p>
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
               )}
             </div>
           } />
@@ -371,7 +375,7 @@ const AdminDashboard = () => {
                   <Plus size={18} /> Add Section
                 </button>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {sections.map(section => (
                   <div key={section._id} className="bg-white/80 p-6 rounded-2xl border border-slate-200 flex justify-between items-center group">
@@ -382,7 +386,7 @@ const AdminDashboard = () => {
                       <span className="text-lg font-medium text-slate-700">{section.name}</span>
                     </div>
                     <button onClick={() => handleDeleteSection(section._id)} className="text-slate-500 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-slate-100 rounded-lg">
-                       <Trash2 size={18} />
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 ))}
@@ -494,60 +498,60 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="mb-4 bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                   <div className="flex justify-between items-center mb-4">
-                     <h4 className="text-sm font-bold text-slate-600 uppercase tracking-wider">Assigned Sections</h4>
-                     {!isEditingEmployeeSections ? (
-                       <button onClick={() => {
-                         setEditingEmployeeSections((selectedEmployee.sections || []).map(s => s._id || s));
-                         setIsEditingEmployeeSections(true);
-                       }} className="text-sm text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg transition-colors font-medium">Edit Sections</button>
-                     ) : (
-                       <div className="flex space-x-2">
-                         <button onClick={() => setIsEditingEmployeeSections(false)} className="text-sm text-slate-500 hover:text-slate-900 bg-white hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors font-medium">Cancel</button>
-                         <button onClick={handleUpdateEmployeeSections} disabled={isSavingSections} className="text-sm bg-blue-600 text-slate-800 px-3 py-1.5 rounded-lg hover:bg-blue-500 disabled:opacity-50 font-medium transition-colors">
-                           {isSavingSections ? 'Saving...' : 'Save'}
-                         </button>
-                       </div>
-                     )}
-                   </div>
-                   
-                   {!isEditingEmployeeSections ? (
-                     <div className="flex flex-wrap gap-2">
-                       {selectedEmployee.sections && selectedEmployee.sections.length > 0 ? (
-                         selectedEmployee.sections.map(section => (
-                           <span key={section._id || section} className="flex items-center space-x-2 px-3 py-1.5 bg-indigo-500/10 text-indigo-300 text-sm rounded-lg border border-indigo-500/20 font-medium">
-                             <Layers size={14} />
-                             <span>{section.name || section}</span>
-                           </span>
-                         ))
-                       ) : (
-                         <span className="text-sm text-slate-500 italic">No sections assigned yet.</span>
-                       )}
-                     </div>
-                   ) : (
-                     <div className="grid grid-cols-2 gap-3 mt-4">
-                        {sections.map(section => (
-                          <label key={section._id} className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all ${editingEmployeeSections.includes(section._id) ? 'bg-blue-600/20 border-blue-500' : 'bg-white/90 border-slate-200 hover:border-slate-500'}`}>
-                            <input
-                              type="checkbox"
-                              className="hidden"
-                              checked={editingEmployeeSections.includes(section._id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setEditingEmployeeSections([...editingEmployeeSections, section._id]);
-                                } else {
-                                  setEditingEmployeeSections(editingEmployeeSections.filter(id => id !== section._id));
-                                }
-                              }}
-                            />
-                            <div className={`w-4 h-4 rounded border flex items-center justify-center mr-3 ${editingEmployeeSections.includes(section._id) ? 'bg-blue-500 border-blue-500' : 'border-slate-500'}`}>
-                              {editingEmployeeSections.includes(section._id) && <CheckSquare size={12} className="text-slate-800" />}
-                            </div>
-                            <span className="text-sm font-medium text-slate-700">{section.name}</span>
-                          </label>
-                        ))}
-                     </div>
-                   )}
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="text-sm font-bold text-slate-600 uppercase tracking-wider">Assigned Sections</h4>
+                    {!isEditingEmployeeSections ? (
+                      <button onClick={() => {
+                        setEditingEmployeeSections((selectedEmployee.sections || []).map(s => s._id || s));
+                        setIsEditingEmployeeSections(true);
+                      }} className="text-sm text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg transition-colors font-medium">Edit Sections</button>
+                    ) : (
+                      <div className="flex space-x-2">
+                        <button onClick={() => setIsEditingEmployeeSections(false)} className="text-sm text-slate-500 hover:text-slate-900 bg-white hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors font-medium">Cancel</button>
+                        <button onClick={handleUpdateEmployeeSections} disabled={isSavingSections} className="text-sm bg-blue-600 text-slate-800 px-3 py-1.5 rounded-lg hover:bg-blue-500 disabled:opacity-50 font-medium transition-colors">
+                          {isSavingSections ? 'Saving...' : 'Save'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {!isEditingEmployeeSections ? (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedEmployee.sections && selectedEmployee.sections.length > 0 ? (
+                        selectedEmployee.sections.map(section => (
+                          <span key={section._id || section} className="flex items-center space-x-2 px-3 py-1.5 bg-indigo-500/10 text-indigo-300 text-sm rounded-lg border border-indigo-500/20 font-medium">
+                            <Layers size={14} />
+                            <span>{section.name || section}</span>
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-sm text-slate-500 italic">No sections assigned yet.</span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 mt-4">
+                      {sections.map(section => (
+                        <label key={section._id} className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all ${editingEmployeeSections.includes(section._id) ? 'bg-blue-600/20 border-blue-500' : 'bg-white/90 border-slate-200 hover:border-slate-500'}`}>
+                          <input
+                            type="checkbox"
+                            className="hidden"
+                            checked={editingEmployeeSections.includes(section._id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setEditingEmployeeSections([...editingEmployeeSections, section._id]);
+                              } else {
+                                setEditingEmployeeSections(editingEmployeeSections.filter(id => id !== section._id));
+                              }
+                            }}
+                          />
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center mr-3 ${editingEmployeeSections.includes(section._id) ? 'bg-blue-500 border-blue-500' : 'border-slate-500'}`}>
+                            {editingEmployeeSections.includes(section._id) && <CheckSquare size={12} className="text-slate-800" />}
+                          </div>
+                          <span className="text-sm font-medium text-slate-700">{section.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -603,7 +607,7 @@ const AdminDashboard = () => {
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
                         <Shield className="h-5 w-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
                       </div>
-                      <div 
+                      <div
                         onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
                         className="block w-full pl-10 pr-10 py-3 border border-slate-300 rounded-xl leading-5 bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all sm:text-sm shadow-inner cursor-pointer select-none relative"
                       >
@@ -612,22 +616,22 @@ const AdminDashboard = () => {
                           <svg className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${isRoleDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                         </div>
                       </div>
-                      
+
                       {isRoleDropdownOpen && (
                         <>
-                          <div 
-                            className="fixed inset-0 z-10" 
+                          <div
+                            className="fixed inset-0 z-10"
                             onClick={() => setIsRoleDropdownOpen(false)}
                           ></div>
                           <div className="absolute z-20 w-full mt-2 bg-white border border-slate-300 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
-                            <div 
+                            <div
                               onClick={() => { setRole('Employee'); setIsRoleDropdownOpen(false); }}
                               className="px-4 py-3 hover:bg-slate-100 cursor-pointer transition-colors flex items-center space-x-3 border-b border-slate-200 text-slate-700"
                             >
                               <User className="h-4 w-4 text-slate-500" />
                               <span className="text-sm font-medium">Employee</span>
                             </div>
-                            <div 
+                            <div
                               onClick={() => { setRole('Admin'); setIsRoleDropdownOpen(false); }}
                               className="px-4 py-3 hover:bg-slate-100 cursor-pointer transition-colors flex items-center space-x-3 text-slate-700"
                             >

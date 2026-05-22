@@ -1,9 +1,9 @@
-const Section = require('../models/Section');
+import Section from '../models/Section.js';
 
 // @desc    Create a new section
 // @route   POST /api/sections
 // @access  Private (Admin only)
-exports.createSection = async (req, res) => {
+export const createSection = async (req, res) => {
   try {
     const { name } = req.body;
     
@@ -32,7 +32,7 @@ exports.createSection = async (req, res) => {
 // @desc    Get all sections for the current workspace
 // @route   GET /api/sections
 // @access  Private
-exports.getSections = async (req, res) => {
+export const getSections = async (req, res) => {
   try {
     if (!req.user.workspace) {
       return res.status(403).json({ message: 'You must belong to a workspace to view sections' });
@@ -50,7 +50,7 @@ exports.getSections = async (req, res) => {
 // @desc    Update a section
 // @route   PUT /api/sections/:id
 // @access  Private (Admin only)
-exports.updateSection = async (req, res) => {
+export const updateSection = async (req, res) => {
   try {
     const { name } = req.body;
     const section = await Section.findOne({ _id: req.params.id, workspace: req.user.workspace });
@@ -72,7 +72,7 @@ exports.updateSection = async (req, res) => {
 // @desc    Delete a section
 // @route   DELETE /api/sections/:id
 // @access  Private (Admin only)
-exports.deleteSection = async (req, res) => {
+export const deleteSection = async (req, res) => {
   try {
     const section = await Section.findOne({ _id: req.params.id, workspace: req.user.workspace });
 

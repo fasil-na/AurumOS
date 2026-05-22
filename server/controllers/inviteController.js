@@ -1,8 +1,9 @@
-const bcrypt = require('bcryptjs');
-const { generateRandomToken } = require('../utils/tokens');
-const { sendEmail } = require('../utils/email');
-const User = require('../models/User');
-const Invitation = require('../models/Invitation');
+import bcrypt from 'bcryptjs';
+import { generateRandomToken } from '../utils/tokens.js';
+import { sendEmail } from '../utils/email.js';
+import User from '../models/User.js';
+import Invitation from '../models/Invitation.js';
+import Workspace from '../models/Workspace.js';
 
 const inviteUser = async (req, res) => {
   try {
@@ -42,7 +43,7 @@ const inviteUser = async (req, res) => {
 
     let workspaceId = null;
     if (inviter.role === 'Super Admin' && role === 'Admin' && workspaceName) {
-      const Workspace = require('../models/Workspace');
+
       const workspace = await Workspace.create({ name: workspaceName, ownerEmail: email });
       workspaceId = workspace._id;
     } else if (inviter.role === 'Admin') {
@@ -132,7 +133,7 @@ const acceptInvitation = async (req, res) => {
     });
 
     if (user.role === 'Admin' && invitation.workspace) {
-      const Workspace = require('../models/Workspace');
+
       const workspace = await Workspace.findById(invitation.workspace);
       if (workspace && !workspace.owner) {
         workspace.owner = user._id;
@@ -200,10 +201,9 @@ const revokeInvitation = async (req, res) => {
   }
 };
 
-module.exports = {
-  inviteUser,
+export { inviteUser,
   getInvitations,
   acceptInvitation,
   revokeInvitation,
   validateInvitation
-};
+ };
