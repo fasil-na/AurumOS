@@ -21,7 +21,7 @@ const login = async (req, res) => {
         maxAge: 24 * 60 * 60 * 1000
       });
       return res.json({
-        user: { id: 'superadmin', email, role: 'Super Admin', name: 'Super Admin' },
+        user: { id: 'superadmin', email, role: 'Super Admin', firstName: 'Super', lastName: 'Admin' },
         token
       });
     }
@@ -53,8 +53,10 @@ const login = async (req, res) => {
       user: {
         id: user._id,
         email: user.email,
-        name: user.name,
-        role: user.role
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        isVerified: user.isVerified
       },
       token
     });
@@ -148,10 +150,50 @@ const resetPassword = async (req, res) => {
   }
 };
 
+const updateProfile = async (req, res) => {
+  try {
+    if (req.user.id === 'superadmin') {
+      return res.status(403).json({ error: 'Super Admin profile cannot be updated here' });
+    }
+
+    if (req.user.role === 'Employee' && req.user.isVerified) {
+      return res.status(403).json({ error: 'Verified employee profiles cannot be edited' });
+    }
+
+    const { firstName, lastName, mobileNumber, aadharNumber, panNumber, address } = req.body;
+    
+    let profilePicUrl = undefined;
+    if (req.file) {
+      profilePicUrl = `${process.env.SERVER_URL || 'http://localhost:5000'}/uploads/${req.file.filename}`;
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (firstName) user.firstName = firstName;
+    if (lastName) user.lastName = lastName;
+    if (mobileNumber) user.mobileNumber = mobileNumber;
+    if (aadharNumber !== undefined) user.aadharNumber = aadharNumber;
+    if (panNumber !== undefined) user.panNumber = panNumber;
+    if (address !== undefined) user.address = address;
+    if (profilePicUrl !== undefined) user.profilePic = profilePicUrl;
+
+    await user.save();
+
+    res.json({ success: true, user, message: 'Profile updated successfully' });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ error: 'Error updating profile' });
+  }
+};
+
 module.exports = {
   login,
   logout,
   me,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  updateProfile
 };

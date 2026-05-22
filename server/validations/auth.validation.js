@@ -7,12 +7,17 @@ const loginSchema = Joi.object({
 
 const inviteUserSchema = Joi.object({
   email: Joi.string().email().required(),
-  role: Joi.string().valid('Admin', 'Employee').required()
+  role: Joi.string().valid('Admin', 'Employee').required(),
+  workspaceName: Joi.string().optional(),
+  sections: Joi.array().items(Joi.string()).optional()
 });
 
 const acceptInviteSchema = Joi.object({
-  name: Joi.string().min(2).required(),
-  password: Joi.string().min(8).required()
+  firstName: Joi.string().min(2).required(),
+  lastName: Joi.string().min(2).required(),
+  mobileNumber: Joi.string().min(10).required(),
+  password: Joi.string().min(8).required(),
+  confirmPassword: Joi.string().valid(Joi.ref('password')).required().messages({ 'any.only': 'Passwords do not match' })
 });
 
 const forgotPasswordSchema = Joi.object({

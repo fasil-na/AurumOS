@@ -20,8 +20,17 @@ const invitationSchema = new mongoose.Schema({
   invitedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    default: null
   },
+  workspace: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Workspace',
+    default: null
+  },
+  sections: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Section'
+  }],
   expiresAt: {
     type: Date,
     required: true

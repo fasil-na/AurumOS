@@ -37,11 +37,11 @@ function App() {
           </Route>
           
           <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
-            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/*" element={<AdminDashboard />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['Employee']} />}>
-            <Route path="/employee" element={<EmployeeDashboard />} />
+            <Route path="/employee/*" element={<EmployeeDashboard />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -14,6 +15,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
@@ -23,9 +25,15 @@ mongoose.connect(process.env.MONGODB_URI)
 // Routes
 const authRoutes = require('./routes/auth');
 const inviteRoutes = require('./routes/invite');
+const userRoutes = require('./routes/users');
+const workspaceRoutes = require('./routes/workspaces');
+const sectionRoutes = require('./routes/sections');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/invites', inviteRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/workspaces', workspaceRoutes);
+app.use('/api/sections', sectionRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({

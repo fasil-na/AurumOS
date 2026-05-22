@@ -22,7 +22,8 @@ const authenticate = async (req, res, next) => {
         id: 'superadmin',
         email: process.env.SUPER_ADMIN_EMAIL,
         role: 'Super Admin',
-        name: 'Super Admin'
+        firstName: 'Super',
+        lastName: 'Admin'
       };
       return next();
     }
@@ -44,4 +45,13 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-module.exports = { authenticate };
+const requireRole = (roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ error: `Forbidden: requires one of the following roles: ${roles.join(', ')}` });
+    }
+    next();
+  };
+};
+
+module.exports = { authenticate, requireRole };

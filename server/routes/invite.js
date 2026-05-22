@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { inviteUser, getInvitations, acceptInvitation, revokeInvitation } = require('../controllers/inviteController');
+const { inviteUser, getInvitations, acceptInvitation, revokeInvitation, validateInvitation } = require('../controllers/inviteController');
 const { authenticate } = require('../middleware/auth');
 const { authorizeRoles } = require('../middleware/roles');
 const { validateRequest, inviteUserSchema, acceptInviteSchema } = require('../validations/auth.validation');
@@ -21,6 +21,9 @@ router.get(
   authorizeRoles('Super Admin', 'Admin'), 
   getInvitations
 );
+
+// Validate invitation
+router.get('/validate', validateInvitation);
 
 // Public route to accept an invitation
 router.post(

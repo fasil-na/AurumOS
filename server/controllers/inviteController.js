@@ -6,7 +6,7 @@ const Invitation = require('../models/Invitation');
 
 const inviteUser = async (req, res) => {
   try {
-    const { email, role } = req.body;
+    const { email, role, workspaceName, sections } = req.body;
     const inviter = req.user;
 
     // Strict role validation based on requirements
@@ -14,8 +14,8 @@ const inviteUser = async (req, res) => {
       return res.status(403).json({ error: 'Super Admin can only invite Admins' });
     }
     
-    if (inviter.role === 'Admin' && role !== 'Employee') {
-      return res.status(403).json({ error: 'Admin can only invite Employees' });
+    if (inviter.role === 'Admin' && !['Admin', 'Employee'].includes(role)) {
+      return res.status(403).json({ error: 'Admin can only invite Admins or Employees' });
     }
 
     if (inviter.role === 'Employee') {
@@ -40,12 +40,23 @@ const inviteUser = async (req, res) => {
     const token = generateRandomToken();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
+    let workspaceId = null;
+    if (inviter.role === 'Super Admin' && role === 'Admin' && workspaceName) {
+      const Workspace = require('../models/Workspace');
+      const workspace = await Workspace.create({ name: workspaceName, ownerEmail: email });
+      workspaceId = workspace._id;
+    } else if (inviter.role === 'Admin') {
+      workspaceId = inviter.workspace;
+    }
+
     const invitation = await Invitation.create({
       email,
       role,
       token,
       invitedBy: inviter.id === 'superadmin' ? null : inviter._id, // Handle Super Admin as inviter
-      expiresAt
+      expiresAt,
+      workspace: workspaceId,
+      sections: sections || []
     });
 
     const acceptUrl = `${process.env.CLIENT_URL}/accept-invite?token=${token}`;
@@ -93,7 +104,7 @@ const getInvitations = async (req, res) => {
 const acceptInvitation = async (req, res) => {
   try {
     const { token } = req.query;
-    const { name, password } = req.body;
+    const { firstName, lastName, mobileNumber, password } = req.body;
 
     const invitation = await Invitation.findOne({
       token,
@@ -109,21 +120,55 @@ const acceptInvitation = async (req, res) => {
     const passwordHash = await bcrypt.hash(password, salt);
 
     const user = await User.create({
-      name,
+      firstName,
+      lastName,
+      mobileNumber,
       email: invitation.email,
       passwordHash,
       role: invitation.role,
-      invitedBy: invitation.invitedBy
+      invitedBy: invitation.invitedBy,
+      workspace: invitation.workspace,
+      sections: invitation.sections || []
     });
+
+    if (user.role === 'Admin' && invitation.workspace) {
+      const Workspace = require('../models/Workspace');
+      const workspace = await Workspace.findById(invitation.workspace);
+      if (workspace && !workspace.owner) {
+        workspace.owner = user._id;
+        await workspace.save();
+      }
+    }
 
     invitation.status = 'accepted';
     invitation.acceptedAt = new Date();
     await invitation.save();
 
-    res.status(201).json({ success: true, message: 'Account created successfully', user: { id: user._id, email: user.email, name: user.name, role: user.role } });
+    res.status(201).json({ success: true, message: 'Account created successfully', user: { id: user._id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role } });
   } catch (error) {
     console.error('Accept invitation error:', error);
     res.status(500).json({ error: 'Error accepting invitation' });
+  }
+};
+
+const validateInvitation = async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    const invitation = await Invitation.findOne({
+      token,
+      status: 'pending',
+      expiresAt: { $gt: Date.now() }
+    });
+
+    if (!invitation) {
+      return res.status(400).json({ error: 'Invalid or expired invitation token' });
+    }
+
+    res.json({ email: invitation.email, role: invitation.role });
+  } catch (error) {
+    console.error('Validate invitation error:', error);
+    res.status(500).json({ error: 'Error validating invitation' });
   }
 };
 
@@ -159,5 +204,6 @@ module.exports = {
   inviteUser,
   getInvitations,
   acceptInvitation,
-  revokeInvitation
+  revokeInvitation,
+  validateInvitation
 };
