@@ -47,7 +47,25 @@ export const getInventoryStats = async (req, res) => {
     receipts.forEach(r => {
       if (r.stones && r.stones.length > 0) {
         r.stones.forEach(stone => {
-          stoneInventory[stone.type] = (stoneInventory[stone.type] || 0) + stone.quantity;
+          if (!stone.type) return;
+          const type = stone.type.trim().toLowerCase();
+          stoneInventory[type] = (stoneInventory[type] || 0) + Number(stone.quantity);
+        });
+      }
+    });
+
+    tasks.forEach(task => {
+      if (task.products && task.products.length > 0) {
+        task.products.forEach(prod => {
+          if (prod.stones && prod.stones.length > 0) {
+            prod.stones.forEach(stone => {
+              if (!stone.type) return;
+              const type = stone.type.trim().toLowerCase();
+              if (stoneInventory[type]) {
+                stoneInventory[type] -= Number(stone.quantity);
+              }
+            });
+          }
         });
       }
     });
@@ -68,7 +86,7 @@ export const getInventoryStats = async (req, res) => {
 
 export const addMaterialReceipt = async (req, res) => {
   try {
-    const { weightReceived, stones, notes } = req.body;
+    const { weightReceived, purity, stones, notes } = req.body;
     
     if ((!weightReceived || isNaN(weightReceived) || Number(weightReceived) <= 0) && (!stones || stones.length === 0)) {
       return res.status(400).json({ error: 'Valid weight or stones are required' });
@@ -77,6 +95,7 @@ export const addMaterialReceipt = async (req, res) => {
     const receipt = new MaterialReceipt({
       workspace: req.user.workspace,
       weightReceived: weightReceived ? Number(weightReceived) : 0,
+      purity: purity ? Number(purity) : undefined,
       stones: stones || [],
       receivedBy: req.user._id,
       source: 'Stellar',

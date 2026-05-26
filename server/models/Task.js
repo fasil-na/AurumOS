@@ -12,6 +12,10 @@ const taskProductSchema = new mongoose.Schema({
   quantity: { type: Number, required: true },
   urgencyLevel: { type: String, enum: ['Low', 'Normal', 'Urgent'], default: 'Normal' },
   assignments: [productAssignmentSchema],
+  stones: [{
+    type: { type: String },
+    quantity: { type: Number }
+  }],
   status: { type: String, enum: ['Pending', 'In Progress', 'Completed'], default: 'Pending' }
 });
 

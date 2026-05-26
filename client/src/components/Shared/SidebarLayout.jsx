@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LogOut, Users, CheckSquare, Menu, X, ChevronRight, User, LayoutDashboard, Layers, Building, Package } from 'lucide-react';
+import { LogOut, Users, CheckSquare, Menu, X, ChevronRight, User, LayoutDashboard, Layers, Building, Package, Gem } from 'lucide-react';
 
 const SidebarLayout = ({ children, menuItems = [] }) => {
   const { user, logout } = useAuth();
@@ -23,6 +23,7 @@ const SidebarLayout = ({ children, menuItems = [] }) => {
       case 'layers': return <Layers size={20} />;
       case 'building': return <Building size={20} />;
       case 'product': return <Package size={20} />;
+      case 'gem': return <Gem size={20} />;
       default: return <ChevronRight size={20} />;
     }
   };
@@ -31,17 +32,16 @@ const SidebarLayout = ({ children, menuItems = [] }) => {
     <div className="flex h-screen w-full bg-slate-50 text-slate-800 font-sans overflow-hidden">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-sm lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <aside 
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-white/90 backdrop-blur-xl border-r border-slate-200 shadow-2xl transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-white/90 backdrop-blur-xl border-r border-slate-200 shadow-2xl transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="flex h-16 items-center justify-between px-6 border-b border-slate-200">
           <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">AurumOS</h1>
@@ -52,7 +52,6 @@ const SidebarLayout = ({ children, menuItems = [] }) => {
 
         <div className="flex-1 overflow-y-auto py-6 px-4">
           <div className="mb-6 px-2">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Menu</p>
             <ul className="space-y-2">
               {menuItems.map((item, index) => {
                 const isActive = item.active || location.pathname === item.path;
@@ -64,11 +63,10 @@ const SidebarLayout = ({ children, menuItems = [] }) => {
                         else if (item.path) navigate(item.path);
                         setIsSidebarOpen(false);
                       }}
-                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-                        isActive 
-                          ? 'bg-blue-300/20 text-blue-400 border border-blue-500/20 shadow-sm' 
+                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
+                          ? 'bg-blue-300/20 text-blue-400 border border-blue-500/20 shadow-sm'
                           : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
-                      }`}
+                        }`}
                     >
                       <div className={`${isActive ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-600'} transition-colors`}>
                         {getIcon(item.icon)}

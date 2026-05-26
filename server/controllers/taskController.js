@@ -19,7 +19,34 @@ export const getDependencies = async (req, res) => {
     const totalAllocated = tasks.reduce((acc, curr) => acc + curr.totalWeight, 0);
     const inventoryBalance = totalReceived - totalAllocated;
 
-    res.json({ products, employees, sections, inventoryBalance });
+    const stoneInventory = {};
+    receipts.forEach(r => {
+      if (r.stones && r.stones.length > 0) {
+        r.stones.forEach(stone => {
+          if (!stone.type) return;
+          const type = stone.type.trim().toLowerCase();
+          stoneInventory[type] = (stoneInventory[type] || 0) + Number(stone.quantity);
+        });
+      }
+    });
+
+    tasks.forEach(task => {
+      if (task.products && task.products.length > 0) {
+        task.products.forEach(prod => {
+          if (prod.stones && prod.stones.length > 0) {
+            prod.stones.forEach(stone => {
+              if (!stone.type) return;
+              const type = stone.type.trim().toLowerCase();
+              if (stoneInventory[type]) {
+                stoneInventory[type] -= Number(stone.quantity);
+              }
+            });
+          }
+        });
+      }
+    });
+
+    res.json({ products, employees, sections, inventoryBalance, stoneInventory });
   } catch (error) {
     console.error('Fetch dependencies error:', error);
     res.status(500).json({ error: 'Server error while fetching dependencies' });

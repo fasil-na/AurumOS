@@ -7,10 +7,12 @@ const InventoryDashboard = () => {
   const [balanceData, setBalanceData] = useState({ balance: 0, totalReceived: 0, totalAllocatedToTasks: 0, receipts: [], stoneInventory: {}, sectionAllocations: {} });
   const [loading, setLoading] = useState(true);
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ weightReceived: '', notes: '', stones: [] });
+  const [activeTab, setActiveTab] = useState('gold');
+  const [formData, setFormData] = useState({ weightReceived: '', purity: '', notes: '', stones: [] });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [stoneTypes, setStoneTypes] = useState([]);
 
-  const handleAddStone = () => setFormData({ ...formData, stones: [...formData.stones, { type: '', quantity: 1 }] });
+  const handleAddStone = () => setFormData({ ...formData, stones: [...formData.stones, { type: '', carats: '', quantity: 1 }] });
   const handleRemoveStone = (index) => {
     const newStones = [...formData.stones];
     newStones.splice(index, 1);
@@ -24,6 +26,7 @@ const InventoryDashboard = () => {
 
   useEffect(() => {
     fetchInventory();
+    fetchStoneTypes();
   }, []);
 
   const fetchInventory = async () => {
@@ -38,18 +41,44 @@ const InventoryDashboard = () => {
     }
   };
 
+  const fetchStoneTypes = async () => {
+    try {
+      const { data } = await api.get('/stones');
+      setStoneTypes(data.stoneTypes);
+    } catch (error) {
+      console.error('Failed to load stone types');
+    }
+  };
+
   const handleReceiveMaterial = async (e) => {
     e.preventDefault();
-    if ((!formData.weightReceived || Number(formData.weightReceived) <= 0) && formData.stones.length === 0) {
-      toast.error('Please enter a valid weight or add at least one stone');
-      return;
+    let payload = { notes: formData.notes };
+
+    if (activeTab === 'gold') {
+      if (!formData.weightReceived || Number(formData.weightReceived) <= 0) {
+        toast.error('Please enter a valid weight');
+        return;
+      }
+      payload.weightReceived = formData.weightReceived;
+      payload.purity = formData.purity;
+    } else {
+      if (formData.stones.length === 0) {
+        toast.error('Please add at least one stone');
+        return;
+      }
+      const validStones = formData.stones.filter(s => s.type);
+      if (validStones.length === 0) {
+        toast.error('Please select a stone type');
+        return;
+      }
+      payload.stones = validStones;
     }
-    
+
     setIsSubmitting(true);
     try {
-      await api.post('/inventory', formData);
+      await api.post('/inventory', payload);
       toast.success('Material received successfully');
-      setFormData({ weightReceived: '', notes: '', stones: [] });
+      setFormData({ weightReceived: '', purity: '', notes: '', stones: [] });
       fetchInventory();
     } catch (error) {
       toast.error('Failed to add material receipt');
@@ -58,7 +87,7 @@ const InventoryDashboard = () => {
     }
   };
 
-  if (loading) {
+  if (loading && balanceData.receipts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 bg-white/60 rounded-2xl border border-slate-200 backdrop-blur-md">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
@@ -82,7 +111,7 @@ const InventoryDashboard = () => {
         <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden group">
           <div className="relative z-10">
             <h3 className="text-blue-100 font-medium text-sm mb-1 uppercase tracking-wider">Available Balance</h3>
-            <p className="text-4xl font-bold">{balanceData.balance.toFixed(2)}<span className="text-xl text-blue-200">g</span></p>
+            <p className="text-4xl font-bold">{balanceData.balance?.toFixed(2) || '0.00'}<span className="text-xl text-blue-200">g</span></p>
           </div>
           <Scale className="absolute -bottom-4 -right-4 w-32 h-32 text-white opacity-10 group-hover:scale-110 transition-transform duration-500" />
         </div>
@@ -90,7 +119,7 @@ const InventoryDashboard = () => {
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm relative overflow-hidden group">
           <div className="relative z-10">
             <h3 className="text-slate-500 font-medium text-sm mb-1 uppercase tracking-wider flex items-center gap-1.5"><PackagePlus size={16} /> Total Received</h3>
-            <p className="text-3xl font-bold text-slate-800">{balanceData.totalReceived.toFixed(2)}<span className="text-lg text-slate-400 font-medium">g</span></p>
+            <p className="text-3xl font-bold text-slate-800">{balanceData.totalReceived?.toFixed(2) || '0.00'}<span className="text-lg text-slate-400 font-medium">g</span></p>
             <p className="text-xs text-slate-400 mt-2">From Stellar Parent Company</p>
           </div>
         </div>
@@ -101,7 +130,7 @@ const InventoryDashboard = () => {
         >
           <div className="relative z-10">
             <h3 className="text-slate-500 font-medium text-sm mb-1 uppercase tracking-wider flex items-center gap-1.5"><Briefcase size={16} /> Allocated to Tasks</h3>
-            <p className="text-3xl font-bold text-slate-800">{balanceData.totalAllocatedToTasks.toFixed(2)}<span className="text-lg text-slate-400 font-medium">g</span></p>
+            <p className="text-3xl font-bold text-slate-800">{balanceData.totalAllocatedToTasks?.toFixed(2) || '0.00'}<span className="text-lg text-slate-400 font-medium">g</span></p>
             <p className="text-xs text-blue-500 mt-2 font-medium">Click to view section breakdown →</p>
           </div>
         </div>
@@ -110,7 +139,7 @@ const InventoryDashboard = () => {
           <div className="relative z-10 h-full flex flex-col">
             <h3 className="text-slate-500 font-medium text-sm mb-2 uppercase tracking-wider flex items-center gap-1.5">💎 Stone Inventory</h3>
             <div className="flex-1 overflow-y-auto pr-2 space-y-2">
-              {Object.keys(balanceData.stoneInventory).length > 0 ? (
+              {balanceData.stoneInventory && Object.keys(balanceData.stoneInventory).length > 0 ? (
                 Object.entries(balanceData.stoneInventory).map(([type, qty]) => (
                   <div key={type} className="flex justify-between items-center text-sm border-b border-slate-100 pb-1">
                     <span className="font-semibold text-slate-700 capitalize">{type}</span>
@@ -128,69 +157,109 @@ const InventoryDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
           <div className="bg-white/80 p-6 rounded-2xl border border-slate-200 shadow-lg sticky top-24">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-6">
+            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
               <PackagePlus className="text-blue-500" /> Receive Material
             </h3>
-            <form onSubmit={handleReceiveMaterial} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Weight Received (g)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.weightReceived}
-                  onChange={(e) => setFormData({ ...formData, weightReceived: e.target.value })}
-                  placeholder="e.g. 500"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-inner bg-slate-50"
-                />
-              </div>
+            
+            <div className="flex border-b border-slate-200 mb-6">
+              <button 
+                type="button"
+                className={`flex-1 py-2 text-sm font-bold border-b-2 transition-colors ${activeTab === 'gold' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                onClick={() => setActiveTab('gold')}
+              >
+                Gold
+              </button>
+              <button 
+                type="button"
+                className={`flex-1 py-2 text-sm font-bold border-b-2 transition-colors ${activeTab === 'stone' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                onClick={() => setActiveTab('stone')}
+              >
+                Stone
+              </button>
+            </div>
 
-              <div className="pt-2 border-t border-slate-100">
-                <div className="flex justify-between items-center mb-2">
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Stones (Optional)</label>
-                  <button type="button" onClick={handleAddStone} className="text-xs text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 flex items-center gap-1">
-                    <Plus size={12} /> Add Stone
-                  </button>
+            <form onSubmit={handleReceiveMaterial} className="space-y-4">
+              {activeTab === 'gold' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Weight Received (g)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.weightReceived}
+                      onChange={(e) => setFormData({ ...formData, weightReceived: e.target.value })}
+                      placeholder="e.g. 500"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-inner bg-slate-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Purity (Optional)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.purity}
+                      onChange={(e) => setFormData({ ...formData, purity: e.target.value })}
+                      placeholder="e.g. 99.99, 916"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-inner bg-slate-50"
+                    />
+                  </div>
+                </>
+              )}
+
+              {activeTab === 'stone' && (
+                <div className="pt-2">
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Stones</label>
+                    <button type="button" onClick={handleAddStone} className="text-xs text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 flex items-center gap-1">
+                      <Plus size={12} /> Add Stone
+                    </button>
+                  </div>
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    {formData.stones.map((stone, idx) => (
+                      <div key={idx} className="flex gap-2 items-center">
+                        <select
+                          required
+                          value={stone.type}
+                          onChange={(e) => handleStoneChange(idx, 'type', e.target.value)}
+                          className="flex-[2] px-2 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                        >
+                          <option value="">-- Type --</option>
+                          {stoneTypes.map(st => (
+                            <option key={st._id} value={st.name}>{st.name}</option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={stone.carats}
+                          onChange={(e) => handleStoneChange(idx, 'carats', e.target.value)}
+                          placeholder="Carats"
+                          className="flex-1 min-w-0 px-2 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                        <input
+                          type="number"
+                          required
+                          min="1"
+                          value={stone.quantity}
+                          onChange={(e) => handleStoneChange(idx, 'quantity', e.target.value)}
+                          placeholder="Qty"
+                          className="w-16 px-2 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                        <button type="button" onClick={() => handleRemoveStone(idx)} className="p-1.5 text-slate-400 hover:text-rose-500 bg-slate-100 rounded-lg">
+                          <Plus size={16} className="rotate-45" />
+                        </button>
+                      </div>
+                    ))}
+                    {formData.stones.length === 0 && (
+                      <p className="text-[10px] text-slate-400 italic">No stones added. Click "Add Stone".</p>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                  {formData.stones.map((stone, idx) => (
-                    <div key={idx} className="flex gap-2 items-center">
-                      <select
-                        required
-                        value={stone.type}
-                        onChange={(e) => handleStoneChange(idx, 'type', e.target.value)}
-                        className="flex-1 px-3 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                      >
-                        <option value="">-- Type --</option>
-                        <option value="diamond">Diamond</option>
-                        <option value="ruby">Ruby</option>
-                        <option value="emerald">Emerald</option>
-                        <option value="sapphire">Sapphire</option>
-                        <option value="pearl">Pearl</option>
-                        <option value="opal">Opal</option>
-                        <option value="amethyst">Amethyst</option>
-                        <option value="topaz">Topaz</option>
-                        <option value="garnet">Garnet</option>
-                      </select>
-                      <input
-                        type="number"
-                        required
-                        min="1"
-                        value={stone.quantity}
-                        onChange={(e) => handleStoneChange(idx, 'quantity', e.target.value)}
-                        placeholder="Qty"
-                        className="w-20 px-3 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                      />
-                      <button type="button" onClick={() => handleRemoveStone(idx)} className="p-1.5 text-slate-400 hover:text-rose-500 bg-slate-100 rounded-lg">
-                        <Plus size={16} className="rotate-45" />
-                      </button>
-                    </div>
-                  ))}
-                  {formData.stones.length === 0 && (
-                    <p className="text-[10px] text-slate-400 italic">No stones added to this receipt.</p>
-                  )}
-                </div>
-              </div>
+              )}
+
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Notes / Waybill (Optional)</label>
                 <textarea
@@ -231,7 +300,7 @@ const InventoryDashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {balanceData.receipts.map(receipt => (
+                  {balanceData.receipts?.map(receipt => (
                     <tr key={receipt._id} className="hover:bg-blue-50/50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">
                         {new Date(receipt.createdAt).toLocaleString()}
@@ -257,18 +326,23 @@ const InventoryDashboard = () => {
                           <div className="flex flex-wrap gap-1">
                             {receipt.stones.map((st, i) => (
                               <span key={i} className="text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-100 font-medium capitalize">
-                                {st.type}: {st.quantity}
+                                {st.type}: {st.quantity} {st.carats ? `(${st.carats}ct)` : ''}
                               </span>
                             ))}
                           </div>
                         ) : <span className="text-slate-300">-</span>}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-emerald-600 text-right">
-                        {receipt.weightReceived > 0 ? `+${receipt.weightReceived}g` : '-'}
+                        {receipt.weightReceived > 0 ? (
+                          <>
+                            +{receipt.weightReceived}g
+                            {receipt.purity && <span className="text-xs text-slate-500 ml-1">({receipt.purity})</span>}
+                          </>
+                        ) : '-'}
                       </td>
                     </tr>
                   ))}
-                  {balanceData.receipts.length === 0 && (
+                  {(!balanceData.receipts || balanceData.receipts.length === 0) && (
                     <tr>
                       <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
                         <History size={40} className="mx-auto mb-3 opacity-20" />
@@ -296,7 +370,7 @@ const InventoryDashboard = () => {
               </button>
             </div>
             <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50">
-              {Object.keys(balanceData.sectionAllocations || {}).length > 0 ? (
+              {balanceData.sectionAllocations && Object.keys(balanceData.sectionAllocations).length > 0 ? (
                 <div className="space-y-3">
                   {Object.entries(balanceData.sectionAllocations).map(([section, weight]) => (
                     <div key={section} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">

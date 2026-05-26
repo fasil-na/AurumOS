@@ -8,6 +8,7 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import ProductManagement from './ProductManagement';
 import TaskManagement from './TaskManagement';
 import InventoryDashboard from './InventoryDashboard';
+import StoneManagement from './StoneManagement';
 
 const AdminDashboard = () => {
   const [email, setEmail] = useState('');
@@ -150,6 +151,7 @@ const AdminDashboard = () => {
     { label: 'Tasks', icon: 'tasks', path: '/admin/tasks' },
     { label: 'Users & Roles', icon: 'users', path: '/admin/users' },
     { label: 'Sections', icon: 'layers', path: '/admin/sections' },
+    { label: 'Stones', icon: 'gem', path: '/admin/stones' },
     { label: 'Workspace Profile', icon: 'building', path: '/admin/workspace' },
     { label: 'My Profile', icon: 'profile', path: '/admin/profile' }
   ];
@@ -398,6 +400,8 @@ const AdminDashboard = () => {
               </div>
             </div>
           } />
+
+          <Route path="stones" element={<StoneManagement />} />
 
           <Route path="tasks" element={
             <div className="flex flex-col items-center justify-center py-20 bg-white/60 rounded-2xl border border-slate-200 backdrop-blur-md">

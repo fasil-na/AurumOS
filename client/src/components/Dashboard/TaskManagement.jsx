@@ -9,6 +9,7 @@ const TaskManagement = () => {
   const [employees, setEmployees] = useState([]);
   const [sections, setSections] = useState([]);
   const [inventoryBalance, setInventoryBalance] = useState(0);
+  const [stoneInventory, setStoneInventory] = useState({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState(null);
@@ -42,6 +43,7 @@ const TaskManagement = () => {
       setEmployees(data.employees);
       setSections(data.sections || []);
       setInventoryBalance(data.inventoryBalance || 0);
+      setStoneInventory(data.stoneInventory || {});
     } catch (error) {
       toast.error('Failed to load dependencies');
     }
@@ -55,14 +57,14 @@ const TaskManagement = () => {
   const handleAddProductRow = () => {
     setFormData({
       ...formData,
-      products: [...formData.products, { type: 'Product', product: '', quantity: 1, urgencyLevel: 'Normal', assignments: [] }]
+      products: [...formData.products, { type: 'Product', product: '', quantity: 1, urgencyLevel: 'Normal', assignments: [], stones: [] }]
     });
   };
 
   const handleAddSectionRow = () => {
     setFormData({
       ...formData,
-      products: [...formData.products, { type: 'Section', section: '', quantity: 1, urgencyLevel: 'Normal', assignments: [] }]
+      products: [...formData.products, { type: 'Section', section: '', quantity: 1, urgencyLevel: 'Normal', assignments: [], stones: [] }]
     });
   };
 
@@ -113,6 +115,25 @@ const TaskManagement = () => {
   const handleAssignmentChange = (prodIndex, assignIndex, employeeId) => {
     const newProducts = [...formData.products];
     newProducts[prodIndex].assignments[assignIndex].employee = employeeId;
+    setFormData({ ...formData, products: newProducts });
+  };
+
+  const handleAddProductStone = (pIdx) => {
+    const newProducts = [...formData.products];
+    if (!newProducts[pIdx].stones) newProducts[pIdx].stones = [];
+    newProducts[pIdx].stones.push({ type: '', quantity: 1 });
+    setFormData({ ...formData, products: newProducts });
+  };
+
+  const handleRemoveProductStone = (pIdx, sIdx) => {
+    const newProducts = [...formData.products];
+    newProducts[pIdx].stones.splice(sIdx, 1);
+    setFormData({ ...formData, products: newProducts });
+  };
+
+  const handleProductStoneChange = (pIdx, sIdx, field, value) => {
+    const newProducts = [...formData.products];
+    newProducts[pIdx].stones[sIdx][field] = value;
     setFormData({ ...formData, products: newProducts });
   };
 
@@ -177,7 +198,8 @@ const TaskManagement = () => {
         section: a.section ? a.section._id : '',
         sectionName: a.section ? a.section.name : '',
         employee: a.employee ? (a.employee._id ? a.employee._id : a.employee) : ''
-      }))
+      })),
+      stones: p.stones ? p.stones.map(s => ({ type: s.type, quantity: s.quantity })) : []
     }));
 
     setFormData({
@@ -477,6 +499,53 @@ const TaskManagement = () => {
                                 </div>
                               );
                             })}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {(prod.product || prod.section) && prod.assignments.some(a => a.sectionName && a.sectionName.toLowerCase().includes('stone setting')) && (
+                        <div className="mt-4 pt-4 border-t border-slate-100">
+                          <div className="flex justify-between items-center mb-3">
+                            <h5 className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                              💎 Stone Allocation
+                            </h5>
+                            <button type="button" onClick={() => handleAddProductStone(pIdx)} className="text-xs text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 flex items-center gap-1">
+                              <Plus size={12} /> Add Stone
+                            </button>
+                          </div>
+                          <div className="space-y-2">
+                            {(prod.stones || []).map((stone, sIdx) => (
+                              <div key={sIdx} className="flex gap-2 items-center bg-white p-2 rounded-lg border border-slate-200">
+                                <select
+                                  required
+                                  value={stone.type}
+                                  onChange={(e) => handleProductStoneChange(pIdx, sIdx, 'type', e.target.value)}
+                                  className="flex-1 px-3 py-1.5 text-sm rounded-md border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                                >
+                                  <option value="">-- Select Stone --</option>
+                                  {Object.entries(stoneInventory).map(([type, qty]) => (
+                                    <option key={type} value={type} disabled={qty <= 0}>
+                                      {type.charAt(0).toUpperCase() + type.slice(1)} (Avail: {qty})
+                                    </option>
+                                  ))}
+                                </select>
+                                <input
+                                  type="number"
+                                  required
+                                  min="1"
+                                  value={stone.quantity}
+                                  onChange={(e) => handleProductStoneChange(pIdx, sIdx, 'quantity', e.target.value)}
+                                  placeholder="Qty"
+                                  className="w-20 px-3 py-1.5 text-sm rounded-md border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                                <button type="button" onClick={() => handleRemoveProductStone(pIdx, sIdx)} className="p-1 text-slate-400 hover:text-rose-500 bg-slate-50 hover:bg-rose-50 rounded-md">
+                                  <X size={16} />
+                                </button>
+                              </div>
+                            ))}
+                            {(prod.stones || []).length === 0 && (
+                              <p className="text-[10px] text-slate-400 italic bg-slate-50 p-2 rounded">No stones assigned to this product. Add one if required.</p>
+                            )}
                           </div>
                         </div>
                       )}
