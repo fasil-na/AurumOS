@@ -4,6 +4,7 @@ import SidebarLayout from '../Shared/SidebarLayout';
 import ProfileForm from '../Shared/ProfileForm';
 import { CheckSquare, Briefcase, Clock, Calendar, User } from 'lucide-react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import EmployeeTasks from './EmployeeTasks';
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
@@ -71,15 +72,7 @@ const EmployeeDashboard = () => {
             </div>
           } />
 
-          <Route path="tasks" element={
-            <div className="flex flex-col items-center justify-center py-20 bg-white/60 rounded-2xl border border-slate-200 backdrop-blur-md">
-              <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mb-6">
-                <CheckSquare className="text-blue-400" size={32} />
-              </div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-2">My Tasks</h3>
-              <p className="text-slate-500 text-center max-w-md">Your task management dashboard is currently being set up. You'll see your assigned tasks here soon.</p>
-            </div>
-          } />
+          <Route path="tasks" element={<EmployeeTasks />} />
 
           <Route path="profile" element={
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">

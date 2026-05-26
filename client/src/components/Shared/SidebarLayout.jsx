@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LogOut, Users, CheckSquare, Menu, X, ChevronRight, User, LayoutDashboard } from 'lucide-react';
+import { LogOut, Users, CheckSquare, Menu, X, ChevronRight, User, LayoutDashboard, Layers, Building, Package } from 'lucide-react';
 
 const SidebarLayout = ({ children, menuItems = [] }) => {
   const { user, logout } = useAuth();
@@ -20,6 +20,9 @@ const SidebarLayout = ({ children, menuItems = [] }) => {
       case 'users': return <Users size={20} />;
       case 'tasks': return <CheckSquare size={20} />;
       case 'profile': return <User size={20} />;
+      case 'layers': return <Layers size={20} />;
+      case 'building': return <Building size={20} />;
+      case 'product': return <Package size={20} />;
       default: return <ChevronRight size={20} />;
     }
   };

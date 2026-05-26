@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Upload, X, Package, CheckSquare, Layers } from 'lucide-react';
+import { Plus, Upload, X, Package, CheckSquare, Layers, ArrowUp, ArrowDown } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -111,6 +111,18 @@ const ProductManagement = () => {
     }
   };
 
+  const moveSection = (index, direction) => {
+    const newSections = [...formData.sections];
+    const temp = newSections[index];
+    newSections[index] = newSections[index + direction];
+    newSections[index + direction] = temp;
+    setFormData({ ...formData, sections: newSections });
+  };
+
+  const removeSection = (indexToRemove) => {
+    setFormData({ ...formData, sections: formData.sections.filter((_, index) => index !== indexToRemove) });
+  };
+
   const handleEdit = (product) => {
     setFormData({
       productCode: product.productCode,
@@ -207,99 +219,132 @@ const ProductManagement = () => {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => { setIsModalOpen(false); resetForm(); }}></div>
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <h3 className="text-lg font-bold text-slate-800">{editingProductId ? 'Edit Product' : 'Add New Product'}</h3>
               <button onClick={() => { setIsModalOpen(false); resetForm(); }} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg transition-colors">
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              <div className="grid grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Product Code</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.productCode}
-                    onChange={e => setFormData({ ...formData, productCode: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-slate-50"
-                    placeholder="e.g. RG-1024"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Weight (g)</label>
-                  <input
-                    type="number"
-                    required
-                    step="0.01"
-                    value={formData.weight}
-                    onChange={e => setFormData({ ...formData, weight: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-slate-50"
-                    placeholder="e.g. 15.5"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Production Stages</label>
-                <div className="grid grid-cols-2 gap-3 max-h-32 overflow-y-auto p-2 border border-slate-200 rounded-xl bg-slate-50">
-                  {availableSections.length > 0 ? availableSections.map(section => (
-                    <label key={section._id} className={`flex items-center p-2 rounded-lg border cursor-pointer transition-all ${formData.sections.includes(section._id) ? 'bg-blue-600/10 border-blue-400' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
+            <form onSubmit={handleSubmit} className="p-6 flex flex-col">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* LEFT COLUMN */}
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Product Code</label>
                       <input
-                        type="checkbox"
-                        className="hidden"
-                        checked={formData.sections.includes(section._id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setFormData({ ...formData, sections: [...formData.sections, section._id] });
-                          } else {
-                            setFormData({ ...formData, sections: formData.sections.filter(id => id !== section._id) });
-                          }
-                        }}
+                        type="text"
+                        required
+                        value={formData.productCode}
+                        onChange={e => setFormData({ ...formData, productCode: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-slate-50"
+                        placeholder="e.g. RG-1024"
                       />
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center mr-2.5 flex-shrink-0 ${formData.sections.includes(section._id) ? 'bg-blue-500 border-blue-500' : 'border-slate-400'}`}>
-                        {formData.sections.includes(section._id) && <CheckSquare size={12} className="text-white" />}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Weight (g)</label>
+                      <input
+                        type="number"
+                        required
+                        step="0.01"
+                        value={formData.weight}
+                        onChange={e => setFormData({ ...formData, weight: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-slate-50"
+                        placeholder="e.g. 15.5"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Product Images</label>
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer hover:bg-slate-50 transition-colors bg-slate-50/50">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-8 h-8 text-slate-400 mb-2" />
+                        <p className="text-sm text-slate-500"><span className="font-semibold text-blue-600">Click to upload</span> or drag and drop</p>
+                        <p className="text-xs text-slate-400 mt-1">PNG, JPG, WEBP (Max 5 images)</p>
                       </div>
-                      <span className="text-sm font-medium text-slate-700 truncate">{section.name}</span>
+                      <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
                     </label>
-                  )) : (
-                    <div className="col-span-2 text-sm text-slate-500 italic p-2 text-center">No sections available. Please create them first.</div>
+
+                    {(existingImages.length > 0 || previewImages.length > 0) && (
+                      <div className="flex gap-3 mt-4 overflow-x-auto pb-2">
+                        {existingImages.map((src, index) => (
+                          <div key={`exist-${index}`} className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 group/img">
+                            <img src={src} alt="existing" className="w-full h-full object-cover" />
+                            <button type="button" onClick={() => setExistingImages(existingImages.filter((_, i) => i !== index))} className="absolute top-1 right-1 bg-white/90 hover:bg-white rounded-full p-0.5 text-rose-500 opacity-0 group-hover/img:opacity-100 transition-all shadow-sm">
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                        {previewImages.map((src, index) => (
+                          <div key={`new-${index}`} className="relative w-16 h-16 rounded-lg overflow-hidden border border-blue-200 flex-shrink-0">
+                            <img src={src} alt="preview" className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* RIGHT COLUMN */}
+                <div className="space-y-6 flex flex-col">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Available Production Stages</label>
+                    <div className="grid grid-cols-2 gap-3 max-h-32 overflow-y-auto p-2 border border-slate-200 rounded-xl bg-slate-50">
+                      {availableSections.length > 0 ? availableSections.map(section => {
+                        return (
+                        <button
+                          key={section._id}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, sections: [...formData.sections, section._id] })}
+                          className="flex items-center p-2 rounded-lg border bg-white border-slate-200 hover:border-blue-400 hover:bg-blue-50 transition-all group text-left"
+                        >
+                          <div className="w-6 h-6 rounded bg-slate-100 group-hover:bg-blue-100 group-hover:text-blue-600 text-slate-400 flex items-center justify-center mr-2.5 flex-shrink-0 transition-colors">
+                            <Plus size={14} />
+                          </div>
+                          <span className="text-sm font-medium text-slate-700 truncate">{section.name}</span>
+                        </button>
+                      )}) : (
+                        <div className="col-span-2 text-sm text-slate-500 italic p-2 text-center">No sections available. Please create them first.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {formData.sections.length > 0 && (
+                    <div className="flex-1 overflow-hidden flex flex-col">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Workflow Sequence</label>
+                      <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
+                        {formData.sections.map((sectionId, index) => {
+                           const section = availableSections.find(s => s._id === sectionId);
+                           if (!section) return null;
+                           return (
+                              <div key={`seq-${index}`} className="flex items-center justify-between p-2.5 bg-white border border-slate-200 rounded-lg shadow-sm">
+                                 <div className="flex items-center gap-3">
+                                   <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold text-xs">
+                                     {index + 1}
+                                   </div>
+                                   <span className="text-sm font-semibold text-slate-700">{section.name}</span>
+                                 </div>
+                                 <div className="flex items-center gap-1">
+                                   <button type="button" onClick={() => moveSection(index, -1)} disabled={index === 0} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded-md disabled:opacity-30"><ArrowUp size={16} /></button>
+                                   <button type="button" onClick={() => moveSection(index, 1)} disabled={index === formData.sections.length - 1} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded-md disabled:opacity-30"><ArrowDown size={16} /></button>
+                                   <div className="w-px h-4 bg-slate-200 mx-1"></div>
+                                   <button type="button" onClick={() => removeSection(index)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md"><X size={16} /></button>
+                                 </div>
+                              </div>
+                           )
+                        })}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
+                        <Layers size={14}/> Use the arrows to reorder the stages the product passes through.
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Product Images</label>
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer hover:bg-slate-50 transition-colors bg-slate-50/50">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                    <p className="text-sm text-slate-500"><span className="font-semibold text-blue-600">Click to upload</span> or drag and drop</p>
-                    <p className="text-xs text-slate-400 mt-1">PNG, JPG, WEBP (Max 5 images)</p>
-                  </div>
-                  <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
-                </label>
-
-                {(existingImages.length > 0 || previewImages.length > 0) && (
-                  <div className="flex gap-3 mt-4 overflow-x-auto pb-2">
-                    {existingImages.map((src, index) => (
-                      <div key={`exist-${index}`} className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 group/img">
-                        <img src={src} alt="existing" className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => setExistingImages(existingImages.filter((_, i) => i !== index))} className="absolute top-1 right-1 bg-white/90 hover:bg-white rounded-full p-0.5 text-rose-500 opacity-0 group-hover/img:opacity-100 transition-all shadow-sm">
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
-                    {previewImages.map((src, index) => (
-                      <div key={`new-${index}`} className="relative w-16 h-16 rounded-lg overflow-hidden border border-blue-200 flex-shrink-0">
-                        <img src={src} alt="preview" className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-2">
+              <div className="pt-6 mt-6 border-t border-slate-100">
                 <button
                   type="submit"
                   disabled={loading}

@@ -6,6 +6,8 @@ import ProfileForm from '../Shared/ProfileForm';
 import { Mail, Plus, UserPlus, Clock, CheckCircle, XCircle, Shield, User, CheckSquare, Layers, Trash2 } from 'lucide-react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import ProductManagement from './ProductManagement';
+import TaskManagement from './TaskManagement';
+import InventoryDashboard from './InventoryDashboard';
 
 const AdminDashboard = () => {
   const [email, setEmail] = useState('');
@@ -144,12 +146,12 @@ const AdminDashboard = () => {
 
   const menuItems = [
     { label: 'Dashboard', icon: 'dashboard', path: '/admin' },
+    { label: 'Products', icon: 'product', path: '/admin/products' },
+    { label: 'Tasks', icon: 'tasks', path: '/admin/tasks' },
     { label: 'Users & Roles', icon: 'users', path: '/admin/users' },
     { label: 'Sections', icon: 'layers', path: '/admin/sections' },
-    { label: 'Task Management', icon: 'tasks', path: '/admin/tasks' },
     { label: 'Workspace Profile', icon: 'building', path: '/admin/workspace' },
-    { label: 'My Profile', icon: 'profile', path: '/admin/profile' },
-    { label: 'Products', icon: 'product', path: '/admin/products' },
+    { label: 'My Profile', icon: 'profile', path: '/admin/profile' }
   ];
 
   return (
@@ -170,14 +172,10 @@ const AdminDashboard = () => {
 
         {/* Content Area */}
         <Routes>
-          <Route path="/" element={
-            <div className="flex flex-col items-center justify-center py-20 bg-white/60 rounded-2xl border border-slate-200 backdrop-blur-md">
-              <h3 className="text-2xl font-bold text-slate-800 mb-2">Welcome to Admin Dashboard</h3>
-              <p className="text-slate-500 text-center max-w-md">Select an option from the menu to get started.</p>
-            </div>
-          } />
+          <Route path="/" element={<InventoryDashboard />} />
 
           <Route path="products" element={<ProductManagement />} />
+          <Route path="tasks" element={<TaskManagement />} />
 
           <Route path="users" element={
             <div className="space-y-6">
