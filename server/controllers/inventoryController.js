@@ -63,9 +63,9 @@ export const getInventoryStats = async (req, res) => {
         const purityVal = r.purity ? Number(r.purity) : 0;
         const multiplier = purityVal > 100 ? purityVal / 1000 : purityVal / 100;
         const fineGoldValue = r.weightReceived * multiplier;
+        const purity = r.purity ? r.purity.toString() : 'Unknown';
 
         if (r.transactionType === 'Return') {
-          const purity = r.purity ? r.purity.toString() : 'Unknown';
           goldByPurity[purity] = (goldByPurity[purity] || 0) - r.weightReceived;
           if (purityVal > 0) {
             totalFineGold -= fineGoldValue;
@@ -84,23 +84,10 @@ export const getInventoryStats = async (req, res) => {
             }
           }
 
-          let availableFromReceipt = r.weightReceived;
-          if (remainingAllocationToDeduct > 0) {
-            if (remainingAllocationToDeduct >= availableFromReceipt) {
-              remainingAllocationToDeduct -= availableFromReceipt;
-              availableFromReceipt = 0;
-            } else {
-              availableFromReceipt -= remainingAllocationToDeduct;
-              remainingAllocationToDeduct = 0;
-            }
-          }
-          if (availableFromReceipt > 0) {
-            const purity = r.purity ? r.purity.toString() : 'Unknown';
-            goldByPurity[purity] = (goldByPurity[purity] || 0) + availableFromReceipt;
+          goldByPurity[purity] = (goldByPurity[purity] || 0) + r.weightReceived;
 
-            if (purityVal > 0) {
-              totalFineGold += availableFromReceipt * multiplier;
-            }
+          if (purityVal > 0) {
+            totalFineGold += r.weightReceived * multiplier;
           }
         }
       }
@@ -160,6 +147,16 @@ export const getInventoryStats = async (req, res) => {
             });
           }
         });
+      }
+
+      // Deduct task gold allocations from purity and fine gold
+      const purityVal = task.purity ? Number(task.purity) : 0;
+      const multiplier = purityVal > 100 ? purityVal / 1000 : purityVal / 100;
+      const purity = task.purity ? task.purity.toString() : 'Unknown';
+
+      goldByPurity[purity] = (goldByPurity[purity] || 0) - task.totalWeight;
+      if (purityVal > 0) {
+        totalFineGold -= task.totalWeight * multiplier;
       }
     });
 

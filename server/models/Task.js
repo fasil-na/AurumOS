@@ -3,8 +3,9 @@ import mongoose from 'mongoose';
 const productAssignmentSchema = new mongoose.Schema({
   section: { type: mongoose.Schema.Types.ObjectId, ref: 'Section', required: true },
   employee: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  status: { type: String, enum: ['Pending', 'In Progress', 'Completed'], default: 'Pending' },
-  outputWeight: { type: Number }
+  status: { type: String, enum: ['Pending', 'In Progress', 'Pending QC', 'Completed'], default: 'Pending' },
+  outputWeight: { type: Number },
+  inputWeight: { type: Number }
 });
 
 const taskProductSchema = new mongoose.Schema({
@@ -16,15 +17,16 @@ const taskProductSchema = new mongoose.Schema({
     type: { type: String },
     quantity: { type: Number }
   }],
-  status: { type: String, enum: ['Pending', 'In Progress', 'Completed'], default: 'Pending' }
+  status: { type: String, enum: ['Pending', 'In Progress', 'Pending QC', 'Completed'], default: 'Pending' }
 });
 
 const taskSchema = new mongoose.Schema({
   taskName: { type: String, required: true },
   clientName: { type: String },
   totalWeight: { type: Number, required: true },
+  purity: { type: Number, required: true },
   products: [taskProductSchema],
-  status: { type: String, enum: ['Pending', 'In Progress', 'Completed'], default: 'Pending' },
+  status: { type: String, enum: ['Pending', 'In Progress', 'Pending QC', 'Completed'], default: 'Pending' },
   workspace: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace', required: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });

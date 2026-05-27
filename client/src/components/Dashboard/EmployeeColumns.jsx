@@ -26,6 +26,15 @@ export const getEmployeeColumns = (setSelectedEmployee) => [
     cell: info => <span className="text-sm text-slate-500">{info.getValue() || '-'}</span>
   },
   {
+    accessorKey: 'totalLossWeight',
+    header: 'Total Loss (Dust)',
+    cell: info => (
+      <span className={`text-sm font-bold ${info.getValue() > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+        {info.getValue() ? `${info.getValue().toFixed(2)}g` : '0g'}
+      </span>
+    )
+  },
+  {
     id: 'profileStatus',
     accessorFn: row => row,
     header: 'Profile Status',

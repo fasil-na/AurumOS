@@ -49,8 +49,8 @@ const EmployeeTasks = () => {
           // Calculate input weight
           let inputWeight = 0;
           if (assignmentIndex === 0) {
-            // First stage: base weight * quantity
-            inputWeight = (product.product?.weight || 0) * product.quantity;
+            // First stage: base weight * quantity or task total weight for section tasks
+            inputWeight = product.product ? (product.product.weight || 0) * product.quantity : (task.totalWeight || 0);
           } else {
             // Subsequent stage: output weight of previous stage
             inputWeight = product.assignments[assignmentIndex - 1].outputWeight || 0;
@@ -68,10 +68,11 @@ const EmployeeTasks = () => {
     setActiveAssignments(active);
   };
 
-  const handleUpdateStatus = async (taskId, productId, assignmentId, newStatus, weight = undefined) => {
+  const handleUpdateStatus = async (taskId, productId, assignmentId, newStatus, weight = undefined, inputWeight = undefined) => {
     try {
       const payload = { status: newStatus };
       if (weight !== undefined) payload.outputWeight = Number(weight);
+      if (inputWeight !== undefined) payload.inputWeight = Number(inputWeight);
 
       await api.patch(`/tasks/${taskId}/products/${productId}/assignments/${assignmentId}`, payload);
       toast.success(`Task marked as ${newStatus}`);
@@ -89,7 +90,11 @@ const EmployeeTasks = () => {
       toast.error('Please enter a valid output weight');
       return;
     }
-    handleUpdateStatus(completingTask.taskId, completingTask.productId, completingTask.assignmentId, 'Completed', outputWeight);
+    if (Number(outputWeight) > completingTask.inputWeight) {
+      toast.error(`Output weight cannot exceed received weight (${completingTask.inputWeight}g)`);
+      return;
+    }
+    handleUpdateStatus(completingTask.taskId, completingTask.productId, completingTask.assignmentId, 'Pending QC', outputWeight, completingTask.inputWeight);
   };
 
   if (loading) {
@@ -107,9 +112,18 @@ const EmployeeTasks = () => {
         <div className="p-3 bg-blue-500/10 rounded-xl text-blue-500">
           <CheckSquare size={24} />
         </div>
-        <div>
+        <div className="flex-1">
           <h2 className="text-2xl font-bold text-slate-800 tracking-tight">My Work List</h2>
           <p className="text-slate-500 mt-1">These are the tasks currently in your stage of production.</p>
+        </div>
+        <div className="bg-rose-50 border border-rose-100 px-4 py-2 rounded-xl flex items-center gap-2">
+          <div className="w-8 h-8 bg-rose-100 text-rose-500 rounded-lg flex items-center justify-center">
+            <X size={16} />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-rose-500 uppercase tracking-wider">Total Loss</p>
+            <p className="text-sm font-bold text-slate-700">{user.totalLossWeight ? user.totalLossWeight.toFixed(2) : '0.00'}g</p>
+          </div>
         </div>
       </div>
 
@@ -144,11 +158,11 @@ const EmployeeTasks = () => {
                   </div>
                   <div className="flex-1 flex justify-between items-center">
                     <div>
-                      <p className="text-sm font-semibold text-slate-700">{product.product?.productCode || 'Unknown Product'}</p>
+                      <p className="text-sm font-semibold text-slate-700">{product.product?.productCode || (assignment.section?.name ? `${assignment.section.name} Task` : 'Custom Task')}</p>
                       <p className="text-xs text-slate-500">Qty: {product.quantity}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-slate-500">Received</p>
+                      <p className="text-xs text-slate-500">Received {task.purity ? `(${task.purity} Purity)` : ''}</p>
                       <p className="text-sm font-bold text-slate-700">{inputWeight}g</p>
                     </div>
                   </div>
@@ -178,7 +192,7 @@ const EmployeeTasks = () => {
                     onClick={() => setCompletingTask({ taskId: task._id, productId: product._id, assignmentId: assignment._id, inputWeight })}
                     className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all flex items-center justify-center gap-2"
                   >
-                    <CheckSquare size={18} /> Mark Completed
+                    <CheckSquare size={18} /> Submit for QC
                   </button>
                 )}
               </div>
@@ -205,10 +219,11 @@ const EmployeeTasks = () => {
                     type="number"
                     step="0.01"
                     required
+                    max={completingTask.inputWeight}
                     value={outputWeight}
                     onChange={e => setOutputWeight(e.target.value)}
                     className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-slate-50"
-                    placeholder={`e.g. ${completingTask.inputWeight}`}
+                    placeholder={`Max: ${completingTask.inputWeight}`}
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">
                     g
@@ -223,7 +238,7 @@ const EmployeeTasks = () => {
                 type="submit"
                 className="w-full py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all flex items-center justify-center gap-2"
               >
-                <CheckSquare size={18} /> Confirm Completion
+                <CheckSquare size={18} /> Submit for Review
               </button>
             </form>
           </div>

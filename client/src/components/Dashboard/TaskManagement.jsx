@@ -8,7 +8,7 @@ const TaskManagement = () => {
   const [products, setProducts] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [sections, setSections] = useState([]);
-  const [inventoryBalance, setInventoryBalance] = useState(0);
+  const [goldByPurity, setGoldByPurity] = useState({});
   const [stoneInventory, setStoneInventory] = useState({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -19,6 +19,7 @@ const TaskManagement = () => {
     taskName: '',
     clientName: '',
     totalWeight: '',
+    purity: '',
     products: []
   });
 
@@ -42,7 +43,7 @@ const TaskManagement = () => {
       setProducts(data.products);
       setEmployees(data.employees);
       setSections(data.sections || []);
-      setInventoryBalance(data.inventoryBalance || 0);
+      setGoldByPurity(data.goldByPurity || {});
       setStoneInventory(data.stoneInventory || {});
     } catch (error) {
       toast.error('Failed to load dependencies');
@@ -50,7 +51,7 @@ const TaskManagement = () => {
   };
 
   const resetForm = () => {
-    setFormData({ taskName: '', clientName: '', totalWeight: '', products: [] });
+    setFormData({ taskName: '', clientName: '', totalWeight: '', purity: '', products: [] });
     setEditingTaskId(null);
   };
 
@@ -143,7 +144,7 @@ const TaskManagement = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.taskName || !formData.totalWeight || formData.products.length === 0) {
+    if (!formData.taskName || !formData.totalWeight || !formData.purity || formData.products.length === 0) {
       toast.error('Please fill all required fields and add at least one product');
       return;
     }
@@ -206,6 +207,7 @@ const TaskManagement = () => {
       taskName: task.taskName,
       clientName: task.clientName || '',
       totalWeight: task.totalWeight,
+      purity: task.purity ? task.purity.toString() : '',
       products: formattedProducts
     });
     setEditingTaskId(task._id);
@@ -228,6 +230,16 @@ const TaskManagement = () => {
     } finally {
       setTaskToDelete(null);
       setLoading(false);
+    }
+  };
+
+  const handleApproveQC = async (taskId, productId, assignmentId) => {
+    try {
+      await api.patch(`/tasks/${taskId}/products/${productId}/assignments/${assignmentId}`, { status: 'Completed' });
+      toast.success('Stage approved and marked as Completed');
+      fetchTasks();
+    } catch (error) {
+      toast.error('Failed to approve stage');
     }
   };
 
@@ -265,7 +277,8 @@ const TaskManagement = () => {
                 <h3 className="text-lg font-bold text-slate-800">{task.taskName}</h3>
                 {task.clientName && <p className="text-sm text-slate-500">Client: {task.clientName}</p>}
               </div>
-              <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold border border-blue-100">
+              <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold border border-blue-100 flex items-center gap-1">
+                {task.purity && <span>{task.purity} : </span>}
                 {task.totalWeight}g
               </div>
             </div>
@@ -295,15 +308,40 @@ const TaskManagement = () => {
                       <div key={aIdx} className="relative flex items-center gap-3">
                         <div className="absolute -left-5 w-2 h-2 rounded-full bg-slate-300 border-2 border-white"></div>
                         <span className="text-xs font-semibold text-slate-500 w-20 truncate">{assign.section ? assign.section.name : 'Unknown'}</span>
-                        <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm flex-1">
-                          <UserIcon size={12} className="text-blue-500" />
+                        <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm flex-1 overflow-hidden">
+                          <UserIcon size={12} className="text-blue-500 shrink-0" />
                           <span className="text-xs text-slate-700 font-medium truncate">
                             {assign.employee ? `${assign.employee.firstName} ${assign.employee.lastName}` : 'Unassigned'}
                           </span>
+                          
+                          {(assign.status === 'Completed' || assign.status === 'Pending QC') && assign.outputWeight !== undefined && (
+                            <div className="ml-auto flex items-center gap-2 text-[10px] pl-2 border-l border-slate-200">
+                              <span className="text-slate-500" title="Output Weight">Out: <strong className="text-slate-700">{assign.outputWeight}g</strong></span>
+                              {assign.inputWeight !== undefined && (
+                                <span className="text-rose-500 font-medium" title="Loss (Dust/Scrap)">
+                                  Loss: {(assign.inputWeight - assign.outputWeight).toFixed(2)}g
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${assign.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                          {assign.status}
-                        </span>
+                        <div className="flex flex-col gap-1 items-end shrink-0 w-24">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            assign.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 
+                            assign.status === 'Pending QC' ? 'bg-purple-100 text-purple-700' :
+                            'bg-amber-100 text-amber-700'
+                          }`}>
+                            {assign.status}
+                          </span>
+                          {assign.status === 'Pending QC' && (
+                            <button
+                              onClick={() => handleApproveQC(task._id, p._id, assign._id)}
+                              className="text-[10px] bg-purple-600 hover:bg-purple-700 text-white px-2 py-0.5 rounded font-bold transition-colors shadow-sm"
+                            >
+                              Approve
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -332,7 +370,7 @@ const TaskManagement = () => {
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 bg-slate-50 p-5 rounded-xl border border-slate-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-50 p-5 rounded-xl border border-slate-200">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Task / Order Name</label>
                   <input
@@ -355,25 +393,41 @@ const TaskManagement = () => {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Purity to Assign</label>
+                  <select
+                    required
+                    value={formData.purity}
+                    onChange={e => setFormData({...formData, purity: e.target.value, totalWeight: ''})}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    <option value="">-- Select Purity --</option>
+                    {Object.entries(goldByPurity)
+                      .filter(([p, weight]) => weight > 0 || (editingTaskId && formData.purity === p))
+                      .map(([purity, weight]) => (
+                        <option key={purity} value={purity}>
+                          {purity} (Available: {weight.toFixed(2)}g)
+                        </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
                   <div className="flex justify-between items-center mb-1.5">
                     <label className="block text-sm font-semibold text-slate-700">Total Raw Weight (g)</label>
-                    <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                      Available: {inventoryBalance.toFixed(2)}g
-                    </span>
                   </div>
                   <input
                     type="number"
                     step="0.01"
                     required
-                    max={editingTaskId ? undefined : inventoryBalance}
+                    disabled={!formData.purity}
+                    max={editingTaskId ? undefined : (formData.purity ? goldByPurity[formData.purity] : "")}
                     value={formData.totalWeight}
                     onChange={e => setFormData({...formData, totalWeight: e.target.value})}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50"
                     placeholder="e.g. 100"
                   />
-                  {formData.totalWeight && Number(formData.totalWeight) > inventoryBalance && !editingTaskId && (
+                  {formData.totalWeight && formData.purity && Number(formData.totalWeight) > (goldByPurity[formData.purity] || 0) && !editingTaskId && (
                     <p className="text-xs text-rose-500 mt-1.5 flex items-center gap-1">
-                      <AlertTriangle size={12} /> Exceeds available inventory balance!
+                      <AlertTriangle size={12} /> Exceeds available {formData.purity} purity balance!
                     </p>
                   )}
                 </div>

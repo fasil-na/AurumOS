@@ -66,6 +66,10 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Section'
   }],
+  totalLossWeight: {
+    type: Number,
+    default: 0
+  },
   isActive: {
     type: Boolean,
     default: true
