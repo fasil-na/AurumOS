@@ -10,8 +10,8 @@ const materialReceiptSchema = new mongoose.Schema({
     quantity: { type: Number, required: true }
   }],
   receivedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  source: { type: String, default: 'Stellar' },
-  transactionType: { type: String, enum: ['Receive', 'Return'], default: 'Receive' },
+  source: { type: mongoose.Schema.Types.ObjectId, ref: 'Supplier', required: true },
+  transactionType: { type: String, enum: ['Receive', 'Return'], required: true },
   notes: { type: String }
 }, { timestamps: true });
 

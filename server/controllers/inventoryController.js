@@ -7,6 +7,7 @@ export const getInventoryStats = async (req, res) => {
 
     const receipts = await MaterialReceipt.find({ workspace: workspaceId })
       .populate('receivedBy', 'firstName lastName')
+      .populate('source', 'name isInternal')
       .sort({ createdAt: -1 });
 
     const totalReceived = receipts.reduce((acc, curr) => {
@@ -17,7 +18,7 @@ export const getInventoryStats = async (req, res) => {
     const tasks = await Task.find({ workspace: workspaceId })
       .populate('products.product')
       .populate('products.assignments.section');
-      
+
     const totalAllocatedToTasks = tasks.reduce((acc, curr) => acc + curr.totalWeight, 0);
 
     const balance = totalReceived - totalAllocatedToTasks;
@@ -31,7 +32,7 @@ export const getInventoryStats = async (req, res) => {
 
         const assignmentIndex = product.assignments.findIndex(a => a.status !== 'Completed');
         if (assignmentIndex === -1) return;
-        
+
         const currentAssignment = product.assignments[assignmentIndex];
         const sectionName = currentAssignment.section ? currentAssignment.section.name : 'Unknown';
 
@@ -54,7 +55,8 @@ export const getInventoryStats = async (req, res) => {
 
     const sortedReceipts = [...receipts].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     let remainingAllocationToDeduct = totalAllocatedToTasks;
-    let totalIndebtedness = 0;
+    let totalExternalDebt = 0;
+    let totalInternalEquity = 0;
 
     sortedReceipts.forEach(r => {
       if (r.weightReceived > 0) {
@@ -67,11 +69,19 @@ export const getInventoryStats = async (req, res) => {
           goldByPurity[purity] = (goldByPurity[purity] || 0) - r.weightReceived;
           if (purityVal > 0) {
             totalFineGold -= fineGoldValue;
-            totalIndebtedness -= fineGoldValue;
+            if (r.source && r.source.isInternal) {
+              totalInternalEquity -= fineGoldValue;
+            } else {
+              totalExternalDebt -= fineGoldValue;
+            }
           }
         } else {
           if (purityVal > 0) {
-            totalIndebtedness += fineGoldValue;
+            if (r.source && r.source.isInternal) {
+              totalInternalEquity += fineGoldValue;
+            } else {
+              totalExternalDebt += fineGoldValue;
+            }
           }
 
           let availableFromReceipt = r.weightReceived;
@@ -174,7 +184,8 @@ export const getInventoryStats = async (req, res) => {
       goldByPurity,
       totalFineGold,
       sectionAllocations,
-      totalIndebtedness
+      totalExternalDebt,
+      totalInternalEquity
     });
   } catch (error) {
     console.error('Fetch inventory error:', error);
@@ -184,8 +195,8 @@ export const getInventoryStats = async (req, res) => {
 
 export const addMaterialReceipt = async (req, res) => {
   try {
-    const { weightReceived, purity, stones, notes, transactionType } = req.body;
-    
+    const { weightReceived, purity, stones, notes, transactionType, source } = req.body;
+
     if (stones && stones.length > 0) {
       // It's a stone receipt
       for (const stone of stones) {
@@ -215,8 +226,8 @@ export const addMaterialReceipt = async (req, res) => {
       purity: purity ? Number(purity) : undefined,
       stones: stones || [],
       receivedBy: req.user._id,
-      source: 'Stellar',
-      transactionType: transactionType || 'Receive',
+      source: source,
+      transactionType: transactionType,
       notes
     });
 

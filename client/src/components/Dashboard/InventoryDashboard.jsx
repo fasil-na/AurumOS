@@ -6,7 +6,7 @@ import DataTable from '../Shared/DataTable';
 import { goldReceiptColumns, stoneReceiptColumns } from './InventoryColumns';
 
 const InventoryDashboard = () => {
-  const [balanceData, setBalanceData] = useState({ balance: 0, totalReceived: 0, totalAllocatedToTasks: 0, receipts: [], stoneInventory: {}, sectionAllocations: {}, goldByPurity: {}, stoneInventoryByCarats: {}, totalFineGold: 0, totalIndebtedness: 0 });
+  const [balanceData, setBalanceData] = useState({ balance: 0, totalReceived: 0, totalAllocatedToTasks: 0, receipts: [], stoneInventory: {}, sectionAllocations: {}, goldByPurity: {}, stoneInventoryByCarats: {}, totalFineGold: 0, totalExternalDebt: 0, totalInternalEquity: 0 });
   const [loading, setLoading] = useState(true);
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [isGoldModalOpen, setIsGoldModalOpen] = useState(false);
@@ -14,9 +14,10 @@ const InventoryDashboard = () => {
   const [goldSearch, setGoldSearch] = useState('');
   const [stoneSearch, setStoneSearch] = useState('');
   const [activeTab, setActiveTab] = useState('gold');
-  const [formData, setFormData] = useState({ weightReceived: '', purity: '', notes: '', stones: [], transactionType: 'Receive' });
+  const [formData, setFormData] = useState({ weightReceived: '', purity: '', notes: '', stones: [], transactionType: 'Receive', source: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stoneTypes, setStoneTypes] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
 
   const handleAddStone = () => setFormData({ ...formData, stones: [...formData.stones, { type: '', carats: '', quantity: 1 }] });
   const handleRemoveStone = (index) => {
@@ -33,7 +34,17 @@ const InventoryDashboard = () => {
   useEffect(() => {
     fetchInventory();
     fetchStoneTypes();
+    fetchSuppliers();
   }, []);
+
+  const fetchSuppliers = async () => {
+    try {
+      const { data } = await api.get('/suppliers');
+      setSuppliers(data.suppliers);
+    } catch (error) {
+      console.error('Failed to load suppliers');
+    }
+  };
 
   const fetchInventory = async () => {
     try {
@@ -58,7 +69,11 @@ const InventoryDashboard = () => {
 
   const handleReceiveMaterial = async (e) => {
     e.preventDefault();
-    let payload = { notes: formData.notes, transactionType: formData.transactionType };
+    if (!formData.source && formData.transactionType === 'Receive') {
+      toast.error('Please select a supplier');
+      return;
+    }
+    let payload = { notes: formData.notes, transactionType: formData.transactionType, source: formData.source };
 
     if (activeTab === 'gold') {
       if (!formData.weightReceived || Number(formData.weightReceived) <= 0) {
@@ -68,6 +83,13 @@ const InventoryDashboard = () => {
       if (!formData.purity || Number(formData.purity) <= 0 || Number(formData.purity) > 100) {
         toast.error('Please enter a valid purity between 0.01 and 100');
         return;
+      }
+      if (formData.transactionType === 'Return') {
+        const availableForPurity = balanceData.goldByPurity[formData.purity] || 0;
+        if (Number(formData.weightReceived) > availableForPurity) {
+          toast.error(`Cannot return more than available (${availableForPurity}g) for ${formData.purity} purity`);
+          return;
+        }
       }
       payload.weightReceived = formData.weightReceived;
       payload.purity = formData.purity;
@@ -98,7 +120,7 @@ const InventoryDashboard = () => {
     try {
       await api.post('/inventory', payload);
       toast.success(`Material ${formData.transactionType === 'Return' ? 'returned' : 'received'} successfully`);
-      setFormData({ weightReceived: '', purity: '', notes: '', stones: [], transactionType: 'Receive' });
+      setFormData({ weightReceived: '', purity: '', notes: '', stones: [], transactionType: 'Receive', source: '' });
       fetchInventory();
     } catch (error) {
       toast.error('Failed to add material receipt');
@@ -123,7 +145,7 @@ const InventoryDashboard = () => {
           <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
             <Scale className="text-blue-500" /> Material Inventory
           </h2>
-          <p className="text-slate-500 mt-1">Manage incoming material from Stellar</p>
+          <p className="text-slate-500 mt-1">Manage incoming material from suppliers</p>
         </div>
       </div>
 
@@ -143,9 +165,15 @@ const InventoryDashboard = () => {
             <p className="text-xs text-blue-200 font-semibold mt-2">
               {balanceData.totalFineGold > 0 ? 'Fine Gold (100% Purity)' : 'Raw Material Balance'}
             </p>
-            <div className="mt-4 pt-3 border-t border-blue-500/30">
-              <p className="text-xs text-blue-200 font-semibold mb-1">Indebted to Stellar (Fine Gold)</p>
-              <p className="text-xl font-bold">≈ {(balanceData.totalIndebtedness || 0).toFixed(2)}<span className="text-sm text-blue-200 ml-1">g</span></p>
+            <div className="mt-4 pt-3 border-t border-blue-500/30 flex justify-between items-center gap-2">
+              <div>
+                <p className="text-[10px] text-blue-200 font-semibold uppercase tracking-wider mb-1">Owed to Suppliers</p>
+                <p className="text-lg font-bold">{(balanceData.totalExternalDebt || 0).toFixed(2)}<span className="text-xs text-blue-200 ml-1">g</span></p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-emerald-200 font-semibold uppercase tracking-wider mb-1">Our Equity</p>
+                <p className="text-lg font-bold text-emerald-300">{(balanceData.totalInternalEquity || 0).toFixed(2)}<span className="text-xs text-emerald-200 ml-1">g</span></p>
+              </div>
             </div>
           </div>
           <PackagePlus className="absolute -bottom-4 -right-4 w-32 h-32 text-white opacity-10 group-hover:scale-110 transition-transform duration-500 pointer-events-none" />
@@ -278,34 +306,91 @@ const InventoryDashboard = () => {
                   ↑ Return
                 </label>
               </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Supplier</label>
+                <select
+                  required
+                  value={formData.source}
+                  onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-inner bg-slate-50"
+                >
+                  <option value="">-- Select Supplier --</option>
+                  {suppliers.map(sup => (
+                    <option key={sup._id} value={sup._id}>{sup.name}</option>
+                  ))}
+                </select>
+              </div>
+
               {activeTab === 'gold' && (
                 <>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Weight Received (g)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formData.weightReceived}
-                      onChange={(e) => setFormData({ ...formData, weightReceived: e.target.value })}
-                      placeholder="e.g. 500"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-inner bg-slate-50"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Purity % (Required)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      max="100"
-                      required
-                      value={formData.purity}
-                      onChange={(e) => setFormData({ ...formData, purity: e.target.value })}
-                      placeholder="e.g. 99.99, 91.6"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-inner bg-slate-50"
-                    />
-                  </div>
+                  {formData.transactionType === 'Return' ? (
+                    <>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Purity to Return</label>
+                        <select
+                          required
+                          value={formData.purity}
+                          onChange={(e) => setFormData({ ...formData, purity: e.target.value, weightReceived: '' })}
+                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-inner bg-slate-50"
+                        >
+                          <option value="">-- Select Available Purity --</option>
+                          {Object.entries(balanceData.goldByPurity || {})
+                            .filter(([_, weight]) => weight > 0)
+                            .map(([purity, weight]) => (
+                              <option key={purity} value={purity}>
+                                {purity} (Available: {weight.toFixed(2)}g)
+                              </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Weight to Return (g)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          max={formData.purity ? balanceData.goldByPurity[formData.purity] : ""}
+                          required
+                          disabled={!formData.purity}
+                          value={formData.weightReceived}
+                          onChange={(e) => setFormData({ ...formData, weightReceived: e.target.value })}
+                          placeholder="e.g. 500"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-inner bg-slate-50 disabled:opacity-50"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Weight Received (g)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          required
+                          value={formData.weightReceived}
+                          onChange={(e) => setFormData({ ...formData, weightReceived: e.target.value })}
+                          placeholder="e.g. 500"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-inner bg-slate-50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Purity % (Required)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          max="100"
+                          required
+                          value={formData.purity}
+                          onChange={(e) => setFormData({ ...formData, purity: e.target.value })}
+                          placeholder="e.g. 99.99, 91.6"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-inner bg-slate-50"
+                        />
+                      </div>
+                    </>
+                  )}
                 </>
               )}
 
@@ -374,11 +459,10 @@ const InventoryDashboard = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`w-full flex items-center justify-center gap-2 py-3 text-white rounded-xl font-bold transition-colors disabled:opacity-50 shadow-md ${
-                  formData.transactionType === 'Return' 
-                    ? 'bg-rose-600 hover:bg-rose-500 hover:shadow-rose-500/20' 
-                    : 'bg-emerald-600 hover:bg-emerald-500 hover:shadow-emerald-500/20'
-                }`}
+                className={`w-full flex items-center justify-center gap-2 py-3 text-white rounded-xl font-bold transition-colors disabled:opacity-50 shadow-md ${formData.transactionType === 'Return'
+                  ? 'bg-rose-600 hover:bg-rose-500 hover:shadow-rose-500/20'
+                  : 'bg-emerald-600 hover:bg-emerald-500 hover:shadow-emerald-500/20'
+                  }`}
               >
                 {isSubmitting ? 'Processing...' : <><Plus size={18} /> {formData.transactionType === 'Return' ? 'Process Return' : 'Add to Inventory'}</>}
               </button>
@@ -394,10 +478,10 @@ const InventoryDashboard = () => {
               </h3>
             </div>
             <div className="p-6">
-              <DataTable 
-                data={activeTab === 'gold' 
-                  ? (balanceData.receipts?.filter(r => r.weightReceived > 0) || []) 
-                  : (balanceData.receipts?.filter(r => r.stones && r.stones.length > 0) || [])} 
+              <DataTable
+                data={activeTab === 'gold'
+                  ? (balanceData.receipts?.filter(r => r.weightReceived > 0) || [])
+                  : (balanceData.receipts?.filter(r => r.stones && r.stones.length > 0) || [])}
                 columns={activeTab === 'gold' ? goldReceiptColumns : stoneReceiptColumns}
               />
             </div>
@@ -462,11 +546,11 @@ const InventoryDashboard = () => {
               {balanceData.goldByPurity && Object.entries(balanceData.goldByPurity)
                 .filter(([purity]) => purity.toLowerCase().includes(goldSearch.toLowerCase()))
                 .map(([purity, weight]) => (
-                <div key={purity} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
-                  <span className="font-bold text-slate-700">{purity === 'Unknown' ? 'Unknown Purity' : `${purity} Purity`}</span>
-                  <span className="bg-amber-50 text-amber-700 px-3 py-1 rounded-lg font-bold">{weight.toFixed(2)}g</span>
-                </div>
-              ))}
+                  <div key={purity} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
+                    <span className="font-bold text-slate-700">{purity === 'Unknown' ? 'Unknown Purity' : `${purity} Purity`}</span>
+                    <span className="bg-amber-50 text-amber-700 px-3 py-1 rounded-lg font-bold">{weight.toFixed(2)}g</span>
+                  </div>
+                ))}
             </div>
           </div>
         </div>
@@ -498,21 +582,21 @@ const InventoryDashboard = () => {
                 Object.values(balanceData.stoneInventoryByCarats)
                   .filter(st => `${st.type} ${st.carats}`.toLowerCase().includes(stoneSearch.toLowerCase()))
                   .map((st, idx) => (
-                  <div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
-                    <span className="font-bold text-slate-700 capitalize">
-                      {st.type} {st.carats && st.carats !== 'N/A' ? `in ${st.carats}ct` : ''}
-                    </span>
-                    <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg font-bold">{st.quantity} nos</span>
-                  </div>
-                ))
+                    <div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
+                      <span className="font-bold text-slate-700 capitalize">
+                        {st.type} {st.carats && st.carats !== 'N/A' ? `in ${st.carats}ct` : ''}
+                      </span>
+                      <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg font-bold">{st.quantity} nos</span>
+                    </div>
+                  ))
               ) : balanceData.stoneInventory && Object.entries(balanceData.stoneInventory)
-                  .filter(([type]) => type.toLowerCase().includes(stoneSearch.toLowerCase()))
-                  .map(([type, qty], idx) => (
-                <div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
-                  <span className="font-bold text-slate-700 capitalize">{type}</span>
-                  <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg font-bold">{qty} nos</span>
-                </div>
-              ))}
+                .filter(([type]) => type.toLowerCase().includes(stoneSearch.toLowerCase()))
+                .map(([type, qty], idx) => (
+                  <div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
+                    <span className="font-bold text-slate-700 capitalize">{type}</span>
+                    <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg font-bold">{qty} nos</span>
+                  </div>
+                ))}
             </div>
           </div>
         </div>

@@ -24,11 +24,14 @@ export const goldReceiptColumns = [
   {
     accessorKey: 'source',
     header: 'Source',
-    cell: info => (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 whitespace-nowrap">
-        {info.getValue()}
-      </span>
-    )
+    cell: info => {
+      const source = info.getValue();
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 whitespace-nowrap">
+          {source && source.name ? source.name : (source || 'Unknown')}
+        </span>
+      );
+    }
   },
   {
     id: 'receivedBy',
@@ -93,11 +96,14 @@ export const stoneReceiptColumns = [
   {
     accessorKey: 'source',
     header: 'Source',
-    cell: info => (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 whitespace-nowrap">
-        {info.getValue()}
-      </span>
-    )
+    cell: info => {
+      const source = info.getValue();
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 whitespace-nowrap">
+          {source && source.name ? source.name : (source || 'Unknown')}
+        </span>
+      );
+    }
   },
   {
     id: 'receivedBy',

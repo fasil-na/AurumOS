@@ -38,6 +38,7 @@ import productRoutes from './routes/products.js';
 import taskRoutes from './routes/tasks.js';
 import inventoryRoutes from './routes/inventory.js';
 import stoneTypeRoutes from './routes/stoneTypes.js';
+import supplierRoutes from './routes/suppliers.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/invites', inviteRoutes);
@@ -48,6 +49,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/stones', stoneTypeRoutes);
+app.use('/api/suppliers', supplierRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({

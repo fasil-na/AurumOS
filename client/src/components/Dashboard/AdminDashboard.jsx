@@ -9,6 +9,7 @@ import ProductManagement from './ProductManagement';
 import TaskManagement from './TaskManagement';
 import InventoryDashboard from './InventoryDashboard';
 import StoneManagement from './StoneManagement';
+import SupplierManagement from './SupplierManagement';
 import DataTable from '../Shared/DataTable';
 import { getInvitationColumns } from './InvitationColumns';
 import { getEmployeeColumns } from './EmployeeColumns';
@@ -158,6 +159,7 @@ const AdminDashboard = () => {
     { label: 'Users & Roles', icon: 'users', path: '/admin/users' },
     { label: 'Sections', icon: 'layers', path: '/admin/sections' },
     { label: 'Stones', icon: 'gem', path: '/admin/stones' },
+    { label: 'Suppliers', icon: 'truck', path: '/admin/suppliers' },
     { label: 'Workspace Profile', icon: 'building', path: '/admin/workspace' },
     { label: 'My Profile', icon: 'profile', path: '/admin/profile' }
   ];
@@ -292,6 +294,7 @@ const AdminDashboard = () => {
           } />
 
           <Route path="stones" element={<StoneManagement />} />
+          <Route path="suppliers" element={<SupplierManagement />} />
 
           <Route path="tasks" element={
             <div className="flex flex-col items-center justify-center py-20 bg-white/60 rounded-2xl border border-slate-200 backdrop-blur-md">
