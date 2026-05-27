@@ -1,14 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { PackagePlus, Scale, History, Plus, Briefcase, FileText, X } from 'lucide-react';
+import DataTable from '../Shared/DataTable';
+import { goldReceiptColumns, stoneReceiptColumns } from './InventoryColumns';
 
 const InventoryDashboard = () => {
-  const [balanceData, setBalanceData] = useState({ balance: 0, totalReceived: 0, totalAllocatedToTasks: 0, receipts: [], stoneInventory: {}, sectionAllocations: {} });
+  const [balanceData, setBalanceData] = useState({ balance: 0, totalReceived: 0, totalAllocatedToTasks: 0, receipts: [], stoneInventory: {}, sectionAllocations: {}, goldByPurity: {}, stoneInventoryByCarats: {}, totalFineGold: 0, totalIndebtedness: 0 });
   const [loading, setLoading] = useState(true);
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
+  const [isGoldModalOpen, setIsGoldModalOpen] = useState(false);
+  const [isStoneModalOpen, setIsStoneModalOpen] = useState(false);
+  const [goldSearch, setGoldSearch] = useState('');
+  const [stoneSearch, setStoneSearch] = useState('');
   const [activeTab, setActiveTab] = useState('gold');
-  const [formData, setFormData] = useState({ weightReceived: '', purity: '', notes: '', stones: [] });
+  const [formData, setFormData] = useState({ weightReceived: '', purity: '', notes: '', stones: [], transactionType: 'Receive' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stoneTypes, setStoneTypes] = useState([]);
 
@@ -52,11 +58,15 @@ const InventoryDashboard = () => {
 
   const handleReceiveMaterial = async (e) => {
     e.preventDefault();
-    let payload = { notes: formData.notes };
+    let payload = { notes: formData.notes, transactionType: formData.transactionType };
 
     if (activeTab === 'gold') {
       if (!formData.weightReceived || Number(formData.weightReceived) <= 0) {
-        toast.error('Please enter a valid weight');
+        toast.error('Please enter a valid weight greater than 0');
+        return;
+      }
+      if (!formData.purity || Number(formData.purity) <= 0 || Number(formData.purity) > 100) {
+        toast.error('Please enter a valid purity between 0.01 and 100');
         return;
       }
       payload.weightReceived = formData.weightReceived;
@@ -71,14 +81,24 @@ const InventoryDashboard = () => {
         toast.error('Please select a stone type');
         return;
       }
+      for (const stone of validStones) {
+        if (!stone.carats || Number(stone.carats) <= 0) {
+          toast.error('Carats must be greater than 0 for all stones');
+          return;
+        }
+        if (!stone.quantity || Number(stone.quantity) <= 0) {
+          toast.error('Quantity must be greater than 0 for all stones');
+          return;
+        }
+      }
       payload.stones = validStones;
     }
 
     setIsSubmitting(true);
     try {
       await api.post('/inventory', payload);
-      toast.success('Material received successfully');
-      setFormData({ weightReceived: '', purity: '', notes: '', stones: [] });
+      toast.success(`Material ${formData.transactionType === 'Return' ? 'returned' : 'received'} successfully`);
+      setFormData({ weightReceived: '', purity: '', notes: '', stones: [], transactionType: 'Receive' });
       fetchInventory();
     } catch (error) {
       toast.error('Failed to add material receipt');
@@ -109,22 +129,95 @@ const InventoryDashboard = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden group">
-          <div className="relative z-10">
-            <h3 className="text-blue-100 font-medium text-sm mb-1 uppercase tracking-wider">Available Balance</h3>
-            <p className="text-4xl font-bold">{balanceData.balance?.toFixed(2) || '0.00'}<span className="text-xl text-blue-200">g</span></p>
+          <div className="relative z-10 flex flex-col justify-center h-full">
+            <h3 className="text-blue-100 font-medium text-sm mb-1 uppercase tracking-wider flex items-center gap-1.5">
+              <Scale size={16} /> Total Balance
+            </h3>
+            <p className="text-4xl font-bold">
+              {balanceData.totalFineGold > 0 ? (
+                <>≈ {balanceData.totalFineGold.toFixed(2)}<span className="text-xl text-blue-200">g</span></>
+              ) : (
+                <>{balanceData.balance?.toFixed(2) || '0.00'}<span className="text-xl text-blue-200">g</span></>
+              )}
+            </p>
+            <p className="text-xs text-blue-200 font-semibold mt-2">
+              {balanceData.totalFineGold > 0 ? 'Fine Gold (100% Purity)' : 'Raw Material Balance'}
+            </p>
+            <div className="mt-4 pt-3 border-t border-blue-500/30">
+              <p className="text-xs text-blue-200 font-semibold mb-1">Indebted to Stellar (Fine Gold)</p>
+              <p className="text-xl font-bold">≈ {(balanceData.totalIndebtedness || 0).toFixed(2)}<span className="text-sm text-blue-200 ml-1">g</span></p>
+            </div>
           </div>
-          <Scale className="absolute -bottom-4 -right-4 w-32 h-32 text-white opacity-10 group-hover:scale-110 transition-transform duration-500" />
+          <PackagePlus className="absolute -bottom-4 -right-4 w-32 h-32 text-white opacity-10 group-hover:scale-110 transition-transform duration-500 pointer-events-none" />
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm relative overflow-hidden group">
-          <div className="relative z-10">
-            <h3 className="text-slate-500 font-medium text-sm mb-1 uppercase tracking-wider flex items-center gap-1.5"><PackagePlus size={16} /> Total Received</h3>
-            <p className="text-3xl font-bold text-slate-800">{balanceData.totalReceived?.toFixed(2) || '0.00'}<span className="text-lg text-slate-400 font-medium">g</span></p>
-            <p className="text-xs text-slate-400 mt-2">From Stellar Parent Company</p>
+          <div className="relative z-10 h-full flex flex-col">
+            <h3 className="text-slate-500 font-medium text-sm mb-2 uppercase tracking-wider flex items-center gap-1.5">✨ Gold Inventory</h3>
+            <div className="flex-1 pr-2 space-y-2">
+              {balanceData.goldByPurity && Object.keys(balanceData.goldByPurity).length > 0 ? (
+                <>
+                  {Object.entries(balanceData.goldByPurity).slice(0, 3).map(([purity, weight]) => (
+                    <div key={purity} className="flex justify-between items-center text-sm border-b border-slate-100 pb-1">
+                      <span className="font-semibold text-slate-700">{purity === 'Unknown' ? 'Unknown Purity' : `${purity} Purity`}</span>
+                      <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-bold">{weight.toFixed(2)}g</span>
+                    </div>
+                  ))}
+                  {Object.keys(balanceData.goldByPurity).length > 3 && (
+                    <button onClick={() => setIsGoldModalOpen(true)} className="w-full text-xs text-blue-500 font-bold hover:text-blue-700 mt-2 py-1.5 bg-blue-50 rounded-lg transition-colors">
+                      View All {Object.keys(balanceData.goldByPurity).length} Types
+                    </button>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-slate-400 italic mt-2">No gold in inventory</p>
+              )}
+            </div>
           </div>
         </div>
 
-        <div 
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm relative overflow-hidden group">
+          <div className="relative z-10 h-full flex flex-col">
+            <h3 className="text-slate-500 font-medium text-sm mb-2 uppercase tracking-wider flex items-center gap-1.5">💎 Stone Inventory</h3>
+            <div className="flex-1 pr-2 space-y-2">
+              {balanceData.stoneInventoryByCarats && Object.keys(balanceData.stoneInventoryByCarats).length > 0 ? (
+                <>
+                  {Object.values(balanceData.stoneInventoryByCarats).slice(0, 3).map((st, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-sm border-b border-slate-100 pb-1">
+                      <span className="font-semibold text-slate-700 capitalize">
+                        {st.type} {st.carats && st.carats !== 'N/A' ? `in ${st.carats}ct` : ''}
+                      </span>
+                      <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">{st.quantity} nos</span>
+                    </div>
+                  ))}
+                  {Object.keys(balanceData.stoneInventoryByCarats).length > 3 && (
+                    <button onClick={() => setIsStoneModalOpen(true)} className="w-full text-xs text-blue-500 font-bold hover:text-blue-700 mt-2 py-1.5 bg-blue-50 rounded-lg transition-colors">
+                      View All {Object.keys(balanceData.stoneInventoryByCarats).length} Stones
+                    </button>
+                  )}
+                </>
+              ) : balanceData.stoneInventory && Object.keys(balanceData.stoneInventory).length > 0 ? (
+                <>
+                  {Object.entries(balanceData.stoneInventory).slice(0, 3).map(([type, qty]) => (
+                    <div key={type} className="flex justify-between items-center text-sm border-b border-slate-100 pb-1">
+                      <span className="font-semibold text-slate-700 capitalize">{type}</span>
+                      <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">{qty} nos</span>
+                    </div>
+                  ))}
+                  {Object.keys(balanceData.stoneInventory).length > 3 && (
+                    <button onClick={() => setIsStoneModalOpen(true)} className="w-full text-xs text-blue-500 font-bold hover:text-blue-700 mt-2 py-1.5 bg-blue-50 rounded-lg transition-colors">
+                      View All {Object.keys(balanceData.stoneInventory).length} Stones
+                    </button>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-slate-400 italic mt-2">No stones in inventory</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div
           className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm relative overflow-hidden group cursor-pointer hover:shadow-md transition-all hover:border-blue-300"
           onClick={() => setIsSectionModalOpen(true)}
         >
@@ -134,42 +227,24 @@ const InventoryDashboard = () => {
             <p className="text-xs text-blue-500 mt-2 font-medium">Click to view section breakdown →</p>
           </div>
         </div>
-
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm relative overflow-hidden group">
-          <div className="relative z-10 h-full flex flex-col">
-            <h3 className="text-slate-500 font-medium text-sm mb-2 uppercase tracking-wider flex items-center gap-1.5">💎 Stone Inventory</h3>
-            <div className="flex-1 overflow-y-auto pr-2 space-y-2">
-              {balanceData.stoneInventory && Object.keys(balanceData.stoneInventory).length > 0 ? (
-                Object.entries(balanceData.stoneInventory).map(([type, qty]) => (
-                  <div key={type} className="flex justify-between items-center text-sm border-b border-slate-100 pb-1">
-                    <span className="font-semibold text-slate-700 capitalize">{type}</span>
-                    <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">{qty} nos</span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-xs text-slate-400 italic mt-2">No stones in inventory</p>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
           <div className="bg-white/80 p-6 rounded-2xl border border-slate-200 shadow-lg sticky top-24">
             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-              <PackagePlus className="text-blue-500" /> Receive Material
+              <PackagePlus className="text-blue-500" /> Log Material Transaction
             </h3>
-            
+
             <div className="flex border-b border-slate-200 mb-6">
-              <button 
+              <button
                 type="button"
                 className={`flex-1 py-2 text-sm font-bold border-b-2 transition-colors ${activeTab === 'gold' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                 onClick={() => setActiveTab('gold')}
               >
                 Gold
               </button>
-              <button 
+              <button
                 type="button"
                 className={`flex-1 py-2 text-sm font-bold border-b-2 transition-colors ${activeTab === 'stone' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                 onClick={() => setActiveTab('stone')}
@@ -179,6 +254,30 @@ const InventoryDashboard = () => {
             </div>
 
             <form onSubmit={handleReceiveMaterial} className="space-y-4">
+              <div className="flex gap-4 p-1 bg-slate-100 rounded-xl mb-4">
+                <label className={`flex-1 flex items-center justify-center py-2 text-sm font-bold rounded-lg cursor-pointer transition-all ${formData.transactionType === 'Receive' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                  <input
+                    type="radio"
+                    name="transactionType"
+                    value="Receive"
+                    checked={formData.transactionType === 'Receive'}
+                    onChange={(e) => setFormData({ ...formData, transactionType: e.target.value })}
+                    className="hidden"
+                  />
+                  ↓ Receive
+                </label>
+                <label className={`flex-1 flex items-center justify-center py-2 text-sm font-bold rounded-lg cursor-pointer transition-all ${formData.transactionType === 'Return' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                  <input
+                    type="radio"
+                    name="transactionType"
+                    value="Return"
+                    checked={formData.transactionType === 'Return'}
+                    onChange={(e) => setFormData({ ...formData, transactionType: e.target.value })}
+                    className="hidden"
+                  />
+                  ↑ Return
+                </label>
+              </div>
               {activeTab === 'gold' && (
                 <>
                   <div>
@@ -194,14 +293,16 @@ const InventoryDashboard = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Purity (Optional)</label>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Purity % (Required)</label>
                     <input
                       type="number"
                       step="0.01"
-                      min="0"
+                      min="0.01"
+                      max="100"
+                      required
                       value={formData.purity}
                       onChange={(e) => setFormData({ ...formData, purity: e.target.value })}
-                      placeholder="e.g. 99.99, 916"
+                      placeholder="e.g. 99.99, 91.6"
                       className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-inner bg-slate-50"
                     />
                   </div>
@@ -233,7 +334,8 @@ const InventoryDashboard = () => {
                         <input
                           type="number"
                           step="0.01"
-                          min="0"
+                          min="0.01"
+                          required
                           value={stone.carats}
                           onChange={(e) => handleStoneChange(idx, 'carats', e.target.value)}
                           placeholder="Carats"
@@ -272,9 +374,13 @@ const InventoryDashboard = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors disabled:opacity-50 shadow-md hover:shadow-lg hover:shadow-blue-500/20"
+                className={`w-full flex items-center justify-center gap-2 py-3 text-white rounded-xl font-bold transition-colors disabled:opacity-50 shadow-md ${
+                  formData.transactionType === 'Return' 
+                    ? 'bg-rose-600 hover:bg-rose-500 hover:shadow-rose-500/20' 
+                    : 'bg-emerald-600 hover:bg-emerald-500 hover:shadow-emerald-500/20'
+                }`}
               >
-                {isSubmitting ? 'Processing...' : <><Plus size={18} /> Add to Inventory</>}
+                {isSubmitting ? 'Processing...' : <><Plus size={18} /> {formData.transactionType === 'Return' ? 'Process Return' : 'Add to Inventory'}</>}
               </button>
             </form>
           </div>
@@ -284,75 +390,16 @@ const InventoryDashboard = () => {
           <div className="bg-white/80 rounded-2xl border border-slate-200 shadow-lg overflow-hidden h-full flex flex-col">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white/50">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <History className="text-blue-500" /> Material Receipt History
+                <History className="text-blue-500" /> {activeTab === 'gold' ? 'Gold Receipt History' : 'Stone Receipt History'}
               </h3>
             </div>
-            <div className="overflow-x-auto flex-1">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50/80 border-b border-slate-200">
-                  <tr>
-                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Source</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Received By</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Notes</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Stones</th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Gold (g)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {balanceData.receipts?.map(receipt => (
-                    <tr key={receipt._id} className="hover:bg-blue-50/50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">
-                        {new Date(receipt.createdAt).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
-                          {receipt.source}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                        {receipt.receivedBy?.firstName} {receipt.receivedBy?.lastName}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-500">
-                        {receipt.notes ? (
-                          <div className="flex items-center gap-1.5" title={receipt.notes}>
-                            <FileText size={14} className="text-slate-400" />
-                            <span className="truncate max-w-[150px] inline-block">{receipt.notes}</span>
-                          </div>
-                        ) : '-'}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-500">
-                        {receipt.stones && receipt.stones.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {receipt.stones.map((st, i) => (
-                              <span key={i} className="text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-100 font-medium capitalize">
-                                {st.type}: {st.quantity} {st.carats ? `(${st.carats}ct)` : ''}
-                              </span>
-                            ))}
-                          </div>
-                        ) : <span className="text-slate-300">-</span>}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-emerald-600 text-right">
-                        {receipt.weightReceived > 0 ? (
-                          <>
-                            +{receipt.weightReceived}g
-                            {receipt.purity && <span className="text-xs text-slate-500 ml-1">({receipt.purity})</span>}
-                          </>
-                        ) : '-'}
-                      </td>
-                    </tr>
-                  ))}
-                  {(!balanceData.receipts || balanceData.receipts.length === 0) && (
-                    <tr>
-                      <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
-                        <History size={40} className="mx-auto mb-3 opacity-20" />
-                        <p className="font-medium text-slate-600">No receipts found</p>
-                        <p className="text-xs mt-1">Material added will show up here</p>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            <div className="p-6">
+              <DataTable 
+                data={activeTab === 'gold' 
+                  ? (balanceData.receipts?.filter(r => r.weightReceived > 0) || []) 
+                  : (balanceData.receipts?.filter(r => r.stones && r.stones.length > 0) || [])} 
+                columns={activeTab === 'gold' ? goldReceiptColumns : stoneReceiptColumns}
+              />
             </div>
           </div>
         </div>
@@ -385,6 +432,87 @@ const InventoryDashboard = () => {
                   <p className="text-slate-500 font-medium">No material currently active in sections.</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isGoldModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsGoldModalOpen(false)}></div>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white/90">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                ✨ All Gold Inventory
+              </h3>
+              <button onClick={() => setIsGoldModalOpen(false)} className="text-slate-400 hover:bg-slate-100 hover:text-slate-600 p-2 rounded-xl transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/50">
+              <input
+                type="text"
+                placeholder="Search by purity..."
+                value={goldSearch}
+                onChange={(e) => setGoldSearch(e.target.value)}
+                className="w-full px-4 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+            <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50 space-y-2">
+              {balanceData.goldByPurity && Object.entries(balanceData.goldByPurity)
+                .filter(([purity]) => purity.toLowerCase().includes(goldSearch.toLowerCase()))
+                .map(([purity, weight]) => (
+                <div key={purity} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
+                  <span className="font-bold text-slate-700">{purity === 'Unknown' ? 'Unknown Purity' : `${purity} Purity`}</span>
+                  <span className="bg-amber-50 text-amber-700 px-3 py-1 rounded-lg font-bold">{weight.toFixed(2)}g</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isStoneModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsStoneModalOpen(false)}></div>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white/90">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                💎 All Stone Inventory
+              </h3>
+              <button onClick={() => setIsStoneModalOpen(false)} className="text-slate-400 hover:bg-slate-100 hover:text-slate-600 p-2 rounded-xl transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/50">
+              <input
+                type="text"
+                placeholder="Search by stone type or carats..."
+                value={stoneSearch}
+                onChange={(e) => setStoneSearch(e.target.value)}
+                className="w-full px-4 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+            <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50 space-y-2">
+              {balanceData.stoneInventoryByCarats && Object.keys(balanceData.stoneInventoryByCarats).length > 0 ? (
+                Object.values(balanceData.stoneInventoryByCarats)
+                  .filter(st => `${st.type} ${st.carats}`.toLowerCase().includes(stoneSearch.toLowerCase()))
+                  .map((st, idx) => (
+                  <div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
+                    <span className="font-bold text-slate-700 capitalize">
+                      {st.type} {st.carats && st.carats !== 'N/A' ? `in ${st.carats}ct` : ''}
+                    </span>
+                    <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg font-bold">{st.quantity} nos</span>
+                  </div>
+                ))
+              ) : balanceData.stoneInventory && Object.entries(balanceData.stoneInventory)
+                  .filter(([type]) => type.toLowerCase().includes(stoneSearch.toLowerCase()))
+                  .map(([type, qty], idx) => (
+                <div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
+                  <span className="font-bold text-slate-700 capitalize">{type}</span>
+                  <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg font-bold">{qty} nos</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

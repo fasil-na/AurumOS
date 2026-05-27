@@ -3,6 +3,8 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import SidebarLayout from '../Shared/SidebarLayout';
 import { Mail, Plus, UserPlus, Clock, CheckCircle, XCircle, ShieldAlert, Settings, Building2 } from 'lucide-react';
+import DataTable from '../Shared/DataTable';
+import { workspaceColumns } from './WorkspaceColumns';
 
 const SuperAdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('users');
@@ -84,53 +86,11 @@ const SuperAdminDashboard = () => {
                   <Plus size={18} /> Create Workspace
                 </button>
               </div>
-              <div className="flex-1 overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-700/50">
-                  <thead className="bg-slate-50">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Workspace Name</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Admin Owner</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Created Date</th>
-                      <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-700/50">
-                    {workspaces.map((ws) => (
-                      <tr key={ws._id} className="hover:bg-slate-50 transition-colors group">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 font-bold text-sm mr-3">
-                              <Building2 size={16} />
-                            </div>
-                            <span className="text-sm font-medium text-slate-700">{ws.name}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-slate-500">{ws.owner?.email || 'Unknown'}</span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                          {new Date(ws.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-                            Active
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {workspaces.length === 0 && (
-                      <tr>
-                        <td colSpan="4" className="px-6 py-12 text-center">
-                          <div className="flex flex-col items-center justify-center text-slate-500">
-                            <Building2 size={40} className="mb-3 opacity-20" />
-                            <p className="text-sm font-medium">No workspaces found</p>
-                            <p className="text-xs mt-1">Start by inviting an administrator to create a workspace.</p>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+              <div className="p-6">
+                <DataTable 
+                  data={workspaces || []} 
+                  columns={workspaceColumns}
+                />
               </div>
             </div>
           </div>

@@ -11,6 +11,7 @@ const materialReceiptSchema = new mongoose.Schema({
   }],
   receivedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   source: { type: String, default: 'Stellar' },
+  transactionType: { type: String, enum: ['Receive', 'Return'], default: 'Receive' },
   notes: { type: String }
 }, { timestamps: true });
 

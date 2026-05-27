@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import SidebarLayout from '../Shared/SidebarLayout';
@@ -9,6 +9,9 @@ import ProductManagement from './ProductManagement';
 import TaskManagement from './TaskManagement';
 import InventoryDashboard from './InventoryDashboard';
 import StoneManagement from './StoneManagement';
+import DataTable from '../Shared/DataTable';
+import { getInvitationColumns } from './InvitationColumns';
+import { getEmployeeColumns } from './EmployeeColumns';
 
 const AdminDashboard = () => {
   const [email, setEmail] = useState('');
@@ -145,6 +148,9 @@ const AdminDashboard = () => {
     }
   };
 
+  const invitationColumns = useMemo(() => getInvitationColumns(handleRevoke), [handleRevoke]);
+  const employeeColumns = useMemo(() => getEmployeeColumns(setSelectedEmployee), [setSelectedEmployee]);
+
   const menuItems = [
     { label: 'Dashboard', icon: 'dashboard', path: '/admin' },
     { label: 'Products', icon: 'product', path: '/admin/products' },
@@ -216,68 +222,11 @@ const AdminDashboard = () => {
                       <Plus size={18} /> Invite User
                     </button>
                   </div>
-                  <div className="flex-1 overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-700/50">
-                      <thead className="bg-slate-50">
-                        <tr>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Recipient</th>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Sent Date</th>
-                          <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-700/50">
-                        {invitations.map((inv) => (
-                          <tr key={inv._id} className="hover:bg-slate-50 transition-colors group">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center">
-                                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-medium text-sm mr-3">
-                                  {inv.email.charAt(0).toUpperCase()}
-                                </div>
-                                <span className="text-sm font-medium text-slate-700">{inv.email}</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${inv.status === 'accepted' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                inv.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                                  'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                                }`}>
-                                {inv.status === 'accepted' && <CheckCircle size={12} className="mr-1.5" />}
-                                {inv.status === 'pending' && <Clock size={12} className="mr-1.5" />}
-                                {inv.status === 'revoked' && <XCircle size={12} className="mr-1.5" />}
-                                <span className="capitalize">{inv.status}</span>
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                              {new Date(inv.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              {inv.status === 'pending' ? (
-                                <button
-                                  onClick={() => handleRevoke(inv._id)}
-                                  className="text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                >
-                                  Revoke
-                                </button>
-                              ) : (
-                                <span className="text-slate-600">-</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                        {invitations.length === 0 && (
-                          <tr>
-                            <td colSpan="4" className="px-6 py-12 text-center">
-                              <div className="flex flex-col items-center justify-center text-slate-500">
-                                <Mail size={40} className="mb-3 opacity-20" />
-                                <p className="text-sm font-medium">No invitations found</p>
-                                <p className="text-xs mt-1">Start by inviting an employee using the form.</p>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                  <div className="p-6">
+                    <DataTable 
+                      data={invitations || []} 
+                      columns={invitationColumns}
+                    />
                   </div>
                 </div>
               )}
@@ -291,70 +240,11 @@ const AdminDashboard = () => {
                       <span className="text-xs font-medium text-slate-500">{employees.length} Total</span>
                     </div>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-700/50">
-                      <thead className="bg-slate-50">
-                        <tr>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Employee</th>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Contact</th>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Profile Status</th>
-                          <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Verification</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-700/50">
-                        {employees.map((emp) => {
-                          const fields = ['firstName', 'lastName', 'mobileNumber', 'aadharNumber', 'panNumber', 'address', 'profilePic'];
-                          let filled = 0;
-                          fields.forEach(field => { if (emp[field]) filled++; });
-                          const completion = Math.round((filled / fields.length) * 100);
-
-                          return (
-                            <tr key={emp._id} className="hover:bg-slate-50 transition-colors group">
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                  <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold text-sm mr-3 overflow-hidden">
-                                    {emp.profilePic ? <img src={emp.profilePic} alt="" className="w-full h-full object-cover" /> : emp.firstName?.charAt(0) || 'U'}
-                                  </div>
-                                  <div>
-                                    <span className="block text-sm font-medium text-slate-700">{emp.firstName} {emp.lastName}</span>
-                                    <span className="block text-xs text-slate-500">{emp.email}</span>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                                {emp.mobileNumber || '-'}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center space-x-2">
-                                  <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div
-                                      className={`h-full ${completion === 100 ? 'bg-emerald-400' : 'bg-blue-400'}`}
-                                      style={{ width: `${completion}%` }}
-                                    ></div>
-                                  </div>
-                                  <span className="text-xs text-slate-500">{completion}%</span>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button
-                                  onClick={() => setSelectedEmployee(emp)}
-                                  className="text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg transition-colors opacity-100 focus:opacity-100"
-                                >
-                                  View Profile
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                        {employees.length === 0 && (
-                          <tr>
-                            <td colSpan="4" className="px-6 py-12 text-center text-slate-500">
-                              <p className="text-sm font-medium">No employees found</p>
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                  <div className="p-6">
+                    <DataTable 
+                      data={employees || []} 
+                      columns={employeeColumns}
+                    />
                   </div>
                 </div>
               )}
