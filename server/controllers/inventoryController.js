@@ -19,9 +19,18 @@ export const getInventoryStats = async (req, res) => {
       .populate('products.product')
       .populate('products.assignments.section');
 
-    const totalAllocatedToTasks = tasks.reduce((acc, curr) => acc + curr.totalWeight, 0);
+    let totalAllocatedToTasks = 0;
+    let consumedByCompletedTasks = 0;
 
-    const balance = totalReceived - totalAllocatedToTasks;
+    tasks.forEach(task => {
+      if (task.status === 'Completed') {
+        consumedByCompletedTasks += task.totalWeight;
+      } else {
+        totalAllocatedToTasks += task.totalWeight;
+      }
+    });
+
+    const balance = totalReceived - consumedByCompletedTasks - totalAllocatedToTasks;
 
     const sectionAllocations = {};
     tasks.forEach(task => {
@@ -156,7 +165,14 @@ export const getInventoryStats = async (req, res) => {
 
       goldByPurity[purity] = (goldByPurity[purity] || 0) - task.totalWeight;
       if (purityVal > 0) {
-        totalFineGold -= task.totalWeight * multiplier;
+        const fineWeight = task.totalWeight * multiplier;
+        totalFineGold -= fineWeight;
+        
+        // If the task is completed, its output is already received back as a new MaterialReceipt (adding to totalInternalEquity).
+        // We must deduct the original input from totalInternalEquity to correctly reflect the loss and avoid double counting.
+        if (task.status === 'Completed') {
+          totalInternalEquity -= fineWeight;
+        }
       }
     });
 
@@ -180,6 +196,7 @@ export const getInventoryStats = async (req, res) => {
       stoneInventoryByCarats,
       goldByPurity,
       totalFineGold,
+      totalSystemFineGold: totalExternalDebt + totalInternalEquity,
       sectionAllocations,
       totalExternalDebt,
       totalInternalEquity

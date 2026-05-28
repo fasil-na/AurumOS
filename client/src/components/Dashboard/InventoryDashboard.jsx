@@ -6,7 +6,7 @@ import DataTable from '../Shared/DataTable';
 import { goldReceiptColumns, stoneReceiptColumns } from './InventoryColumns';
 
 const InventoryDashboard = () => {
-  const [balanceData, setBalanceData] = useState({ balance: 0, totalReceived: 0, totalAllocatedToTasks: 0, receipts: [], stoneInventory: {}, sectionAllocations: {}, goldByPurity: {}, stoneInventoryByCarats: {}, totalFineGold: 0, totalExternalDebt: 0, totalInternalEquity: 0 });
+  const [balanceData, setBalanceData] = useState({ balance: 0, totalReceived: 0, totalAllocatedToTasks: 0, receipts: [], stoneInventory: {}, sectionAllocations: {}, goldByPurity: {}, stoneInventoryByCarats: {}, totalFineGold: 0, totalSystemFineGold: 0, totalExternalDebt: 0, totalInternalEquity: 0 });
   const [loading, setLoading] = useState(true);
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [isGoldModalOpen, setIsGoldModalOpen] = useState(false);
@@ -149,32 +149,49 @@ const InventoryDashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+        <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden group">
+          <div className="relative z-10 flex flex-col justify-center h-full">
+            <h3 className="text-orange-100 font-medium text-sm mb-1 uppercase tracking-wider flex items-center gap-1.5">
+              <Scale size={16} /> Total Store Gold
+            </h3>
+            <p className="text-4xl font-bold">
+              {(balanceData.totalSystemFineGold || 0).toFixed(2)}<span className="text-xl text-orange-200">g</span>
+            </p>
+            <p className="text-xs text-orange-200 font-semibold mt-2">
+              Fine Gold (100%) • In Labor & Stock
+            </p>
+            <div className="mt-4 pt-3 border-t border-orange-400/30 flex justify-between items-center gap-2">
+              <div>
+                <p className="text-[10px] text-orange-200 font-semibold uppercase tracking-wider mb-1">Owed to Suppliers</p>
+                <p className="text-lg font-bold">{(balanceData.totalExternalDebt || 0).toFixed(2)}<span className="text-xs text-orange-200 ml-1">g</span></p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-yellow-200 font-semibold uppercase tracking-wider mb-1">Our Equity</p>
+                <p className="text-lg font-bold text-yellow-300">{(balanceData.totalInternalEquity || 0).toFixed(2)}<span className="text-xs text-yellow-200 ml-1">g</span></p>
+              </div>
+            </div>
+          </div>
+          <Scale className="absolute -bottom-4 -right-4 w-32 h-32 text-white opacity-10 group-hover:scale-110 transition-transform duration-500 pointer-events-none" />
+        </div>
+
         <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden group">
           <div className="relative z-10 flex flex-col justify-center h-full">
             <h3 className="text-blue-100 font-medium text-sm mb-1 uppercase tracking-wider flex items-center gap-1.5">
-              <Scale size={16} /> Total Balance
+              <PackagePlus size={16} /> Raw Material Balance
             </h3>
             <p className="text-4xl font-bold">
-              {balanceData.totalFineGold > 0 ? (
-                <>≈ {balanceData.totalFineGold.toFixed(2)}<span className="text-xl text-blue-200">g</span></>
-              ) : (
-                <>{balanceData.balance?.toFixed(2) || '0.00'}<span className="text-xl text-blue-200">g</span></>
-              )}
+              {balanceData.balance?.toFixed(2) || '0.00'}<span className="text-xl text-blue-200">g</span>
             </p>
             <p className="text-xs text-blue-200 font-semibold mt-2">
-              {balanceData.totalFineGold > 0 ? 'Fine Gold (100% Purity)' : 'Raw Material Balance'}
+              Available Dead Stock (Mixed Purity)
             </p>
-            <div className="mt-4 pt-3 border-t border-blue-500/30 flex justify-between items-center gap-2">
-              <div>
-                <p className="text-[10px] text-blue-200 font-semibold uppercase tracking-wider mb-1">Owed to Suppliers</p>
-                <p className="text-lg font-bold">{(balanceData.totalExternalDebt || 0).toFixed(2)}<span className="text-xs text-blue-200 ml-1">g</span></p>
+            {balanceData.totalFineGold > 0 && (
+              <div className="mt-4 pt-3 border-t border-blue-500/30">
+                <p className="text-[10px] text-blue-200 font-semibold uppercase tracking-wider mb-1">Fine Gold Equivalent</p>
+                <p className="text-lg font-bold">{balanceData.totalFineGold.toFixed(2)}<span className="text-xs text-blue-200 ml-1">g</span></p>
               </div>
-              <div className="text-right">
-                <p className="text-[10px] text-emerald-200 font-semibold uppercase tracking-wider mb-1">Our Equity</p>
-                <p className="text-lg font-bold text-emerald-300">{(balanceData.totalInternalEquity || 0).toFixed(2)}<span className="text-xs text-emerald-200 ml-1">g</span></p>
-              </div>
-            </div>
+            )}
           </div>
           <PackagePlus className="absolute -bottom-4 -right-4 w-32 h-32 text-white opacity-10 group-hover:scale-110 transition-transform duration-500 pointer-events-none" />
         </div>
