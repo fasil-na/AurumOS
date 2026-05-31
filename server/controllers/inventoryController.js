@@ -125,6 +125,10 @@ export const getInventoryStats = async (req, res) => {
             if (!stone.type) return;
             availableStones.push({
               type: stone.type.trim().toLowerCase(),
+              shape: stone.shape || 'Unknown',
+              size: stone.size || null,
+              length: stone.length || null,
+              width: stone.width || null,
               carats: stone.carats || null,
               quantity: Number(stone.quantity)
             });
@@ -176,14 +180,33 @@ export const getInventoryStats = async (req, res) => {
       }
     });
 
+    const detailedStoneInventory = {};
+
     availableStones.forEach(st => {
       if (st.quantity > 0) {
         stoneInventory[st.type] = (stoneInventory[st.type] || 0) + st.quantity;
-        const key = `${st.type}|${st.carats || 'N/A'}`;
-        if (!stoneInventoryByCarats[key]) {
-          stoneInventoryByCarats[key] = { type: st.type, carats: st.carats, quantity: 0 };
+        
+        // Group by type + shape + dimensions + carats
+        const dimKey = st.size ? `${st.size}mm` : (st.length && st.width ? `${st.length}x${st.width}mm` : 'N/A');
+        const key = `${st.type}|${st.shape}|${dimKey}|${st.carats || 'N/A'}`;
+        
+        if (!detailedStoneInventory[key]) {
+          detailedStoneInventory[key] = { 
+            type: st.type, 
+            shape: st.shape,
+            dimensions: dimKey,
+            carats: st.carats, 
+            quantity: 0 
+          };
         }
-        stoneInventoryByCarats[key].quantity += st.quantity;
+        detailedStoneInventory[key].quantity += st.quantity;
+
+        // Keep old property for backward compatibility if needed elsewhere
+        const oldKey = `${st.type}|${st.carats || 'N/A'}`;
+        if (!stoneInventoryByCarats[oldKey]) {
+          stoneInventoryByCarats[oldKey] = { type: st.type, carats: st.carats, quantity: 0 };
+        }
+        stoneInventoryByCarats[oldKey].quantity += st.quantity;
       }
     });
 
@@ -194,6 +217,7 @@ export const getInventoryStats = async (req, res) => {
       receipts,
       stoneInventory,
       stoneInventoryByCarats,
+      detailedStoneInventory,
       goldByPurity,
       totalFineGold,
       totalSystemFineGold: totalExternalDebt + totalInternalEquity,
@@ -217,6 +241,20 @@ export const addMaterialReceipt = async (req, res) => {
         if (!stone.type) {
           return res.status(400).json({ error: 'Stone type is required' });
         }
+        if (!stone.shape) {
+          return res.status(400).json({ error: 'Stone shape is required' });
+        }
+        if (stone.shape === 'Round' && (!stone.size || isNaN(stone.size) || Number(stone.size) <= 0)) {
+          return res.status(400).json({ error: 'Valid size is required for Round stones' });
+        }
+        if (stone.shape !== 'Party Stone' && stone.shape !== 'Round') {
+          if (!stone.length || isNaN(stone.length) || Number(stone.length) <= 0) {
+            return res.status(400).json({ error: `Valid length is required for ${stone.shape} stones` });
+          }
+          if (!stone.width || isNaN(stone.width) || Number(stone.width) <= 0) {
+            return res.status(400).json({ error: `Valid width is required for ${stone.shape} stones` });
+          }
+        }
         if (!stone.carats || Number(stone.carats) <= 0) {
           return res.status(400).json({ error: 'Carats must be greater than 0 for all stones' });
         }
@@ -234,10 +272,18 @@ export const addMaterialReceipt = async (req, res) => {
       }
     }
 
+    let pureWeight = undefined;
+    if (weightReceived && purity) {
+      const purityVal = Number(purity);
+      const multiplier = purityVal > 100 ? purityVal / 1000 : purityVal / 100;
+      pureWeight = Number(weightReceived) * multiplier;
+    }
+
     const receipt = new MaterialReceipt({
       workspace: req.user.workspace,
       weightReceived: weightReceived ? Number(weightReceived) : 0,
       purity: purity ? Number(purity) : undefined,
+      pureWeight,
       stones: stones || [],
       receivedBy: req.user._id,
       source: source,

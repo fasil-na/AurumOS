@@ -13,6 +13,7 @@ import SupplierManagement from './SupplierManagement';
 import DataTable from '../Shared/DataTable';
 import { getInvitationColumns } from './InvitationColumns';
 import { getEmployeeColumns } from './EmployeeColumns';
+import MaterialTransactions from './MaterialTransactions';
 
 const AdminDashboard = () => {
   const [email, setEmail] = useState('');
@@ -154,6 +155,7 @@ const AdminDashboard = () => {
 
   const menuItems = [
     { label: 'Dashboard', icon: 'dashboard', path: '/admin' },
+    { label: 'Material Receipts', icon: 'receipt', path: '/admin/receipts' },
     { label: 'Products', icon: 'product', path: '/admin/products' },
     { label: 'Tasks', icon: 'tasks', path: '/admin/tasks' },
     { label: 'Users & Roles', icon: 'users', path: '/admin/users' },
@@ -183,7 +185,7 @@ const AdminDashboard = () => {
         {/* Content Area */}
         <Routes>
           <Route path="/" element={<InventoryDashboard />} />
-
+          <Route path="receipts" element={<MaterialTransactions />} />
           <Route path="products" element={<ProductManagement />} />
           <Route path="tasks" element={<TaskManagement />} />
 
